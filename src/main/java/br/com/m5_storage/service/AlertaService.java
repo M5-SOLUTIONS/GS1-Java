@@ -18,53 +18,42 @@ public class AlertaService {
         this.alertaRepository = alertaRepository;
     }
 
+    // Regra 16: dashboard — todos os alertas ativos
     @Transactional(readOnly = true)
-    public List<AlertaListagemDTO> readAlertasAtivos(Long baseId) {
-
-        return alertaRepository
-                .findByRecursoBaseIdAndResolvidoFalseOrderByDataAlertaDesc(baseId)
+    public List<AlertaListagemDTO> readAlertasAtivos() {
+        return alertaRepository.findByResolvidoFalseOrderByDataAlertaDesc()
                 .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AlertaListagemDTO> readAlertasByRecurso(
-            Long baseId,
-            Long recursoId
-    ) {
-
-        return alertaRepository
-                .findByRecursoIdAndRecursoBaseIdAndResolvidoFalse(
-                        recursoId,
-                        baseId
-                )
+    public List<AlertaListagemDTO> readAlertasByRecurso(Long recursoId) {
+        return alertaRepository.findByRecursoIdAndResolvidoFalse(recursoId)
                 .stream()
                 .map(this::toDTO)
                 .toList();
     }
 
+    // Regra 5: resolver alerta manualmente
     @Transactional
     public AlertaListagemDTO resolverAlerta(Long id) {
-
         Alerta alerta = alertaRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Alerta não encontrado com id: " + id
                 ));
 
         alerta.setResolvido(true);
-
         return toDTO(alertaRepository.save(alerta));
     }
 
-    private AlertaListagemDTO toDTO(Alerta a) {
+    // ── helpers ──────────────────────────────────────────────
 
+    private AlertaListagemDTO toDTO(Alerta a) {
         return new AlertaListagemDTO(
                 a.getId(),
                 a.getRecurso().getId(),
                 a.getRecurso().getNome(),
-                a.getRecurso().getBase().getId(),
-                a.getRecurso().getBase().getNome(),
                 a.getMensagem(),
                 a.getNivel(),
                 a.getResolvido(),

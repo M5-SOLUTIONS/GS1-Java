@@ -9,7 +9,9 @@ import java.util.List;
 @Repository
 public interface AlertaRepository extends JpaRepository<Alerta, Long> {
 
-    List<Alerta> findByRecursoBaseIdAndResolvidoFalseOrderByDataAlertaDesc(Long baseId);
+    // Regra 5: buscar alertas ativos de um recurso
+    List<Alerta> findByRecursoIdAndResolvidoFalse(Long recursoId);
 
-    List<Alerta> findByRecursoIdAndRecursoBaseIdAndResolvidoFalse(Long recursoId, Long baseId);
+    // Dashboard: todos os alertas não resolvidos
+    List<Alerta> findByResolvidoFalseOrderByDataAlertaDesc();
 }

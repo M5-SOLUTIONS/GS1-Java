@@ -1,6 +1,5 @@
 package br.com.m5_storage.entity.alerta;
 
-import br.com.m5_storage.entity.base.Base;
 import br.com.m5_storage.entity.recurso.Recurso;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,10 +22,6 @@ public class Alerta {
     private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "base_id", nullable = false)
-    private Base base;
-
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "recurso_id", nullable = false)
     private Recurso recurso;
 
@@ -36,6 +31,9 @@ public class Alerta {
     @Column(name = "nivel", length = 30)
     private String nivel;
 
+    /**
+     * Regra 5: false = ativo | true = resolvido.
+     */
     @Column(name = "resolvido", nullable = false)
     private Boolean resolvido = false;
 

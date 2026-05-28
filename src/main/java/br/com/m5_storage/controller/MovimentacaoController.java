@@ -4,14 +4,6 @@ import br.com.m5_storage.dto.movimentacao.MovimentacaoCadastroDTO;
 import br.com.m5_storage.dto.movimentacao.MovimentacaoListagemDTO;
 import br.com.m5_storage.entity.movimentacao.MovimentacaoAssembler;
 import br.com.m5_storage.service.MovimentacaoService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.validation.Valid;
 
 import org.springframework.hateoas.CollectionModel;
@@ -25,7 +17,6 @@ import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
-@Tag(name = "Movimentações")
 @RestController
 @RequestMapping("/movimentacoes")
 public class MovimentacaoController {
@@ -39,13 +30,8 @@ public class MovimentacaoController {
         this.assembler = assembler;
     }
 
-    @Operation(summary = "Registra uma movimentação", responses = {
-            @ApiResponse(responseCode = "201", description = "Movimentação registrada com sucesso",
-                    content = @Content(schema = @Schema(implementation = MovimentacaoListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao registrar movimentação"),
-            @ApiResponse(responseCode = "404", description = "Usuário, recurso ou base não encontrados"),
-            @ApiResponse(responseCode = "409", description = "Usuário não pertence à mesma base do recurso")
-    })
+    // POST /movimentacoes → 201 Created
+    // Regras 1, 2, 3, 4, 5, 8, 9, 10, 15
     @PostMapping
     public ResponseEntity<EntityModel<MovimentacaoListagemDTO>> registrar(
             @RequestBody @Valid MovimentacaoCadastroDTO dto) {
@@ -61,12 +47,7 @@ public class MovimentacaoController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    @Operation(summary = "Lista movimentações por recurso", responses = {
-            @ApiResponse(responseCode = "200", description = "Movimentações encontradas",
-                    content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = MovimentacaoListagemDTO.class)))),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
-    })
+    // GET /movimentacoes/recurso/{recursoId} → 200 OK  (Regra 20: histórico)
     @GetMapping("/recurso/{recursoId}")
     public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorRecurso(
             @PathVariable Long recursoId) {
@@ -77,23 +58,13 @@ public class MovimentacaoController {
                         .map(assembler::toModel)
                         .toList();
 
-        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection = CollectionModel.of(
-                lista,
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorRecurso(recursoId)).withSelfRel(),
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorUsuario(null)).withRel("movimentacoes-por-usuario")
-        );
+        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection = CollectionModel.of(lista,
+                linkTo(methodOn(MovimentacaoController.class).listarPorRecurso(recursoId)).withSelfRel());
 
         return ResponseEntity.ok(collection);
     }
 
-    @Operation(summary = "Lista movimentações por usuário", responses = {
-            @ApiResponse(responseCode = "200", description = "Movimentações encontradas",
-                    content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = MovimentacaoListagemDTO.class)))),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
-    })
+    // GET /movimentacoes/usuario/{usuarioId} → 200 OK  (Regra 10)
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorUsuario(
             @PathVariable Long usuarioId) {
@@ -104,13 +75,8 @@ public class MovimentacaoController {
                         .map(assembler::toModel)
                         .toList();
 
-        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection = CollectionModel.of(
-                lista,
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorUsuario(usuarioId)).withSelfRel(),
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorRecurso(null)).withRel("movimentacoes-por-recurso")
-        );
+        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection = CollectionModel.of(lista,
+                linkTo(methodOn(MovimentacaoController.class).listarPorUsuario(usuarioId)).withSelfRel());
 
         return ResponseEntity.ok(collection);
     }

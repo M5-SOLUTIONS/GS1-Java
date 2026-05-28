@@ -4,8 +4,8 @@ import br.com.m5_storage.entity.recurso.StatusRecurso;
 
 import java.time.LocalDateTime;
 
+// Regra 12: inclui tipoEnergia e porcentagem calculada
 public record EnergiaListagemDTO(
-
         Long id,
         String nome,
         String categoria,
@@ -14,8 +14,6 @@ public record EnergiaListagemDTO(
         Boolean critico,
         StatusRecurso status,
         String tipoEnergia,
-        Double porcentagem,
-        Long baseId,
-        String baseNome,
+        Double porcentagem,       // calculado no service — não persiste
         LocalDateTime ultimaAtualizacao
 ) {}

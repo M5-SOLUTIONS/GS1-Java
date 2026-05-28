@@ -28,9 +28,6 @@ public record MedicamentoCadastroDTO(
 
         Boolean critico,
 
-        @NotNull(message = "Base é obrigatória")
-        Long baseId,
-
         @NotNull(message = "Validade é obrigatória para medicamentos")
         @Future(message = "Validade deve ser uma data futura")
         LocalDate validade

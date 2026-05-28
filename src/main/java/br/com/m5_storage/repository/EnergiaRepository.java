@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface EnergiaRepository extends JpaRepository<Energia, Long> {
 
+    // Regra 12: buscar por tipo de energia (Solar, Nuclear, Bateria...)
     List<Energia> findByTipoEnergia(String tipoEnergia);
 }
 

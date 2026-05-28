@@ -1,9 +1,7 @@
 package br.com.m5_storage.entity.recurso;
 
-import br.com.m5_storage.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,9 +32,17 @@ public class Recurso {
     @Column(name = "minimo", nullable = false)
     private Double minimo;
 
+    /**
+     * Regra 3/4: Apenas recursos críticos geram alertas.
+     * true = este recurso pode gerar alertas ao atingir nível mínimo.
+     */
     @Column(name = "critico", nullable = false)
     private Boolean critico = false;
 
+    /**
+     * Regra 7/8: Status depende da quantidade vs mínimo.
+     * OK | ATENCAO | CRITICO
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30)
     private StatusRecurso status;
@@ -46,8 +52,4 @@ public class Recurso {
 
     @Column(name = "ultima_atualizacao")
     private LocalDateTime ultimaAtualizacao;
-
-    @ManyToOne
-    @JoinColumn(name = "base_id", nullable = false)
-    private Base base;
 }

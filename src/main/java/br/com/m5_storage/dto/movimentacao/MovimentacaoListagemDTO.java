@@ -10,8 +10,6 @@ public record MovimentacaoListagemDTO(
         String recursoNome,
         Long usuarioId,
         String usuarioNome,
-        Long baseId,
-        String baseNome,
         TipoMovimentacao tipoMovimentacao,
         Double quantidade,
         String descricao,

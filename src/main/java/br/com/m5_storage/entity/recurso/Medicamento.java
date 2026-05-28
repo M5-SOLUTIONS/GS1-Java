@@ -17,5 +17,4 @@ public class Medicamento extends Recurso {
 
     @Column(name = "validade")
     private LocalDate validade;
-
 }
