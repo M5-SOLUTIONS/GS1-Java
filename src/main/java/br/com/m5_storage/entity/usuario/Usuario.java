@@ -28,7 +28,6 @@ public class Usuario {
     @Column(name = "senha", nullable = false, length = 100)
     private String senha;
 
-    // 🔥 NOVO: vínculo obrigatório com Base
     @ManyToOne
     @JoinColumn(name = "base_id", nullable = false)
     private Base base;

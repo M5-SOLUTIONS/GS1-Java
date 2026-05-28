@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @Component
-public class BaseAssembler implements RepresentationModelAssembler<BaseListagemDTO, EntityModel<BaseListagemDTO>> {
+public class BaseAssembler
+        implements RepresentationModelAssembler<BaseListagemDTO, EntityModel<BaseListagemDTO>> {
 
     @Override
     public EntityModel<BaseListagemDTO> toModel(BaseListagemDTO dto) {

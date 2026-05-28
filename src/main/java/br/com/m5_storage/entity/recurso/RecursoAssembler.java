@@ -17,6 +17,7 @@ public class RecursoAssembler
         return EntityModel.of(dto,
                 linkTo(methodOn(RecursoController.class).buscarPorId(dto.id())).withSelfRel(),
                 linkTo(methodOn(RecursoController.class).listarTodos()).withRel("recursos"),
+                linkTo(methodOn(RecursoController.class).listarPorSetor(dto.setorId())).withRel("recursos-do-setor"),
                 linkTo(methodOn(RecursoController.class).listarPorStatus(dto.status())).withRel("por-status")
         );
     }

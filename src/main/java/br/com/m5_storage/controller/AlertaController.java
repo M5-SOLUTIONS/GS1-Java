@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/alertas")
-@Tag(name = "Alertas", description = "Gerenciamento de alertas de recursos")
+@Tag(name = "Alertas", description = "Gerenciamento de alertas de recursos por setor e base")
 public class AlertaController {
 
     private final AlertaService alertaService;
@@ -37,24 +36,16 @@ public class AlertaController {
     })
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<AlertaListagemDTO>>> listarAtivos() {
-
         List<EntityModel<AlertaListagemDTO>> lista = alertaService.readAlertasAtivos()
-                .stream()
-                .map(assembler::toModel)
-                .toList();
+                .stream().map(assembler::toModel).toList();
 
-        CollectionModel<EntityModel<AlertaListagemDTO>> collection = CollectionModel.of(
-                lista,
-                linkTo(methodOn(AlertaController.class).listarAtivos()).withSelfRel()
-        );
-
-        return ResponseEntity.ok(collection);
+        return ResponseEntity.ok(CollectionModel.of(lista,
+                linkTo(methodOn(AlertaController.class).listarAtivos()).withSelfRel()));
     }
 
-    @Operation(summary = "Lista alertas por recurso", responses = {
-            @ApiResponse(responseCode = "200", description = "Alertas do recurso retornados com sucesso",
-                    content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class))
-                    ),
+    @Operation(summary = "Lista alertas ativos por recurso", responses = {
+            @ApiResponse(responseCode = "200", description = "Alertas retornados com sucesso",
+                    content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class))),
             @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
     })
     @GetMapping("/recurso/{recursoId}")
@@ -62,29 +53,52 @@ public class AlertaController {
             @PathVariable Long recursoId) {
 
         List<EntityModel<AlertaListagemDTO>> lista = alertaService.readAlertasByRecurso(recursoId)
-                .stream()
-                .map(assembler::toModel)
-                .toList();
+                .stream().map(assembler::toModel).toList();
 
-        CollectionModel<EntityModel<AlertaListagemDTO>> collection = CollectionModel.of(
-                lista,
+        return ResponseEntity.ok(CollectionModel.of(lista,
                 linkTo(methodOn(AlertaController.class).listarPorRecurso(recursoId)).withSelfRel(),
-                linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("todos-ativos")
-        );
-
-        return ResponseEntity.ok(collection);
+                linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("todos-ativos")));
     }
 
-    @Operation(summary = "Resolve um alerta", responses = {
+    @Operation(summary = "Lista alertas ativos por setor", responses = {
+            @ApiResponse(responseCode = "200", description = "Alertas do setor retornados com sucesso",
+                    content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class)))
+    })
+    @GetMapping("/setor/{setorId}")
+    public ResponseEntity<CollectionModel<EntityModel<AlertaListagemDTO>>> listarPorSetor(
+            @PathVariable Long setorId) {
+
+        List<EntityModel<AlertaListagemDTO>> lista = alertaService.readAlertasBySetor(setorId)
+                .stream().map(assembler::toModel).toList();
+
+        return ResponseEntity.ok(CollectionModel.of(lista,
+                linkTo(methodOn(AlertaController.class).listarPorSetor(setorId)).withSelfRel(),
+                linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("todos-ativos")));
+    }
+
+    @Operation(summary = "Lista alertas ativos por base", responses = {
+            @ApiResponse(responseCode = "200", description = "Alertas da base retornados com sucesso",
+                    content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class)))
+    })
+    @GetMapping("/base/{baseId}")
+    public ResponseEntity<CollectionModel<EntityModel<AlertaListagemDTO>>> listarPorBase(
+            @PathVariable Long baseId) {
+
+        List<EntityModel<AlertaListagemDTO>> lista = alertaService.readAlertasByBase(baseId)
+                .stream().map(assembler::toModel).toList();
+
+        return ResponseEntity.ok(CollectionModel.of(lista,
+                linkTo(methodOn(AlertaController.class).listarPorBase(baseId)).withSelfRel(),
+                linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("todos-ativos")));
+    }
+
+    @Operation(summary = "Resolve um alerta manualmente", responses = {
             @ApiResponse(responseCode = "200", description = "Alerta resolvido com sucesso",
                     content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class))),
             @ApiResponse(responseCode = "404", description = "Alerta não encontrado")
     })
     @PatchMapping("/{id}/resolver")
     public ResponseEntity<EntityModel<AlertaListagemDTO>> resolverAlerta(@PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                assembler.toModel(alertaService.resolverAlerta(id))
-        );
+        return ResponseEntity.ok(assembler.toModel(alertaService.resolverAlerta(id)));
     }
 }

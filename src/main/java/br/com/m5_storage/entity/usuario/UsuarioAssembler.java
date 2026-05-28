@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
-
 @Component
 public class UsuarioAssembler
         implements RepresentationModelAssembler<UsuarioListagemDTO, EntityModel<UsuarioListagemDTO>> {
@@ -17,7 +16,8 @@ public class UsuarioAssembler
     public EntityModel<UsuarioListagemDTO> toModel(UsuarioListagemDTO dto) {
         return EntityModel.of(dto,
                 linkTo(methodOn(UsuarioController.class).buscarPorId(dto.id())).withSelfRel(),
-                linkTo(methodOn(UsuarioController.class).listarTodos()).withRel("usuarios")
+                linkTo(methodOn(UsuarioController.class).listarTodos()).withRel("usuarios"),
+                linkTo(methodOn(UsuarioController.class).listarPorBase(dto.baseId())).withRel("usuarios-da-base")
         );
     }
 }

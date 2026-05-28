@@ -10,19 +10,22 @@ import java.util.List;
 @Repository
 public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Long> {
 
-    // Regra 19: verificar se recurso possui movimentações antes de remover
+    // Regra 21: verificar movimentações antes de deletar recurso
     boolean existsByRecursoId(Long recursoId);
 
-    // Regra 20: histórico por recurso
+    // Regra 19: histórico por recurso
     List<Movimentacao> findByRecursoIdOrderByDataMovimentacaoDesc(Long recursoId);
 
-    // Regra 10: histórico por usuário
+    // Regra 11: histórico por usuário
     List<Movimentacao> findByUsuarioIdOrderByDataMovimentacaoDesc(Long usuarioId);
 
-    List<Movimentacao> findByRecurso_Base_IdOrderByDataMovimentacaoDesc(Long baseId);
+    // Regra 10/20: histórico por setor
+    List<Movimentacao> findBySetorIdOrderByDataMovimentacaoDesc(Long setorId);
 
-    List<Movimentacao> findByRecurso_Base_IdAndTipoMovimentacaoOrderByDataMovimentacaoDesc(
-            Long baseId,
-            TipoMovimentacao tipo
-    );
+    // Filtro por setor + tipo
+    List<Movimentacao> findBySetorIdAndTipoMovimentacaoOrderByDataMovimentacaoDesc(
+            Long setorId, TipoMovimentacao tipo);
+
+    // Histórico por base (via setor)
+    List<Movimentacao> findBySetor_BaseIdOrderByDataMovimentacaoDesc(Long baseId);
 }
