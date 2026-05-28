@@ -7,19 +7,20 @@ import jakarta.validation.constraints.Size;
 
 public record MovimentacaoCadastroDTO(
 
-        @NotNull(message = "Usuário é obrigatório")
-        Long usuarioId,
-
         @NotNull(message = "Recurso é obrigatório")
         Long recursoId,
 
-        @NotNull(message = "Tipo da movimentação é obrigatório")
+        @NotNull(message = "Usuário é obrigatório")
+        Long usuarioId,
+
+        @NotNull(message = "Tipo de movimentação é obrigatório")
         TipoMovimentacao tipoMovimentacao,
 
+        // Regra 15: quantidade nunca zero
         @NotNull(message = "Quantidade é obrigatória")
         @Positive(message = "Quantidade deve ser maior que zero")
         Double quantidade,
 
-        @Size(max = 255, message = "Descrição deve ter no máximo 255 caracteres")
+        @Size(max = 255)
         String descricao
 ) {}

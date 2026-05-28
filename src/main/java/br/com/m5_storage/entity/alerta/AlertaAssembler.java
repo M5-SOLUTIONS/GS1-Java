@@ -15,17 +15,9 @@ public class AlertaAssembler
     @Override
     public EntityModel<AlertaListagemDTO> toModel(AlertaListagemDTO dto) {
         return EntityModel.of(dto,
-                linkTo(methodOn(AlertaController.class)
-                        .listarAtivos(dto.baseId()))
-                        .withRel("alertas-ativos"),
-
-                linkTo(methodOn(AlertaController.class)
-                        .resolverAlerta(dto.id()))
-                        .withRel("resolver"),
-
-                linkTo(methodOn(AlertaController.class)
-                        .listarPorRecurso(dto.baseId(), dto.recursoId()))
-                        .withRel("alertas-recurso")
+                linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("alertas-ativos"),
+                linkTo(methodOn(AlertaController.class).resolverAlerta(dto.id())).withRel("resolver"),
+                linkTo(methodOn(AlertaController.class).listarPorRecurso(dto.recursoId())).withRel("alertas-recurso")
         );
     }
 }

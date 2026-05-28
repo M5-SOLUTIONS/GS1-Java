@@ -13,8 +13,6 @@ public record MedicamentoListagemDTO(
         Double minimo,
         Boolean critico,
         StatusRecurso status,
-        Long baseId,
-        String baseNome,
         LocalDate validade,
         LocalDateTime ultimaAtualizacao
 ) {}

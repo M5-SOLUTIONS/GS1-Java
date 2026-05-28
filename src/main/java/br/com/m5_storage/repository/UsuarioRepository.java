@@ -9,6 +9,7 @@ import java.util.Optional;
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
+    // Regra 13: email único — usado para validar duplicidade
     boolean existsByEmail(String email);
 
     Optional<Usuario> findByEmail(String email);

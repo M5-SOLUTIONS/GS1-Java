@@ -5,12 +5,6 @@ import br.com.m5_storage.dto.usuario.UsuarioCadastroDTO;
 import br.com.m5_storage.dto.usuario.UsuarioListagemDTO;
 import br.com.m5_storage.entity.usuario.UsuarioAssembler;
 import br.com.m5_storage.service.UsuarioService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -23,7 +17,6 @@ import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
-@Tag(name = "Usuários")
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
@@ -36,12 +29,7 @@ public class UsuarioController {
         this.assembler = assembler;
     }
 
-    @Operation(summary = "Cadastra um usuário", responses = {
-            @ApiResponse(responseCode = "201", description = "Usuário cadastrado com sucesso",
-                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao cadastrar usuário"),
-            @ApiResponse(responseCode = "404", description = "Base não encontrada")
-    })
+    // POST /usuarios → 201 Created
     @PostMapping
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> criar(
             @RequestBody @Valid UsuarioCadastroDTO dto) {
@@ -57,14 +45,9 @@ public class UsuarioController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    @Operation(summary = "Lista todos os usuários", responses = {
-            @ApiResponse(responseCode = "200", description = "Usuários encontrados",
-                    content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = UsuarioListagemDTO.class))))
-    })
+    // GET /usuarios → 200 OK
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<UsuarioListagemDTO>>> listarTodos() {
-
         List<EntityModel<UsuarioListagemDTO>> lista = usuarioService.readAllUsuarios()
                 .stream()
                 .map(assembler::toModel)
@@ -76,44 +59,25 @@ public class UsuarioController {
         return ResponseEntity.ok(collection);
     }
 
-    @Operation(summary = "Busca usuário por id", responses = {
-            @ApiResponse(responseCode = "200", description = "Usuário encontrado",
-                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
-    })
+    // GET /usuarios/{id} → 200 OK
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> buscarPorId(@PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                assembler.toModel(usuarioService.readUsuarioById(id))
-        );
+        return ResponseEntity.ok(assembler.toModel(usuarioService.readUsuarioById(id)));
     }
 
-    @Operation(summary = "Atualiza um usuário", responses = {
-            @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso",
-                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao atualizar usuário"),
-            @ApiResponse(responseCode = "404", description = "Usuário ou base não encontrados")
-    })
+    // PUT /usuarios/{id} → 200 OK
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> atualizar(
             @PathVariable Long id,
             @RequestBody @Valid UsuarioAtualizarDTO dto) {
 
-        return ResponseEntity.ok(
-                assembler.toModel(usuarioService.updateUsuario(id, dto))
-        );
+        return ResponseEntity.ok(assembler.toModel(usuarioService.updateUsuario(id, dto)));
     }
 
-    @Operation(summary = "Deleta um usuário", responses = {
-            @ApiResponse(responseCode = "204", description = "Usuário deletado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
-    })
+    // DELETE /usuarios/{id} → 204 No Content
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-
         usuarioService.deleteUsuario(id);
-
         return ResponseEntity.noContent().build();
     }
 }

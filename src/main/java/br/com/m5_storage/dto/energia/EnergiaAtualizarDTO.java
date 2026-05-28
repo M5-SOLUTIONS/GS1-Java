@@ -27,8 +27,5 @@ public record EnergiaAtualizarDTO(
 
         @NotBlank(message = "Tipo de energia é obrigatório")
         @Size(max = 50)
-        String tipoEnergia,
-
-        @NotNull(message = "Base é obrigatória")
-        Long baseId
+        String tipoEnergia
 ) {}

@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface MedicamentoRepository extends JpaRepository<Medicamento, Long> {
 
+    // Regra 11: buscar medicamentos vencidos ou próximos do vencimento
     List<Medicamento> findByValidadeBeforeOrderByValidadeAsc(LocalDate data);
 }

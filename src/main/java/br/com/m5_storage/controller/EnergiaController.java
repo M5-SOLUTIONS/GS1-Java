@@ -5,14 +5,6 @@ import br.com.m5_storage.dto.energia.EnergiaCadastroDTO;
 import br.com.m5_storage.dto.energia.EnergiaListagemDTO;
 import br.com.m5_storage.entity.recurso.EnergiaAssembler;
 import br.com.m5_storage.service.EnergiaService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.validation.Valid;
 
 import org.springframework.hateoas.CollectionModel;
@@ -26,7 +18,6 @@ import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
-@Tag(name = "Energias")
 @RestController
 @RequestMapping("/energias")
 public class EnergiaController {
@@ -39,12 +30,7 @@ public class EnergiaController {
         this.assembler = assembler;
     }
 
-    @Operation(summary = "Cadastra um recurso de energia", responses = {
-            @ApiResponse(responseCode = "201", description = "Energia cadastrada com sucesso",
-                    content = @Content(schema = @Schema(implementation = EnergiaListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao cadastrar energia"),
-            @ApiResponse(responseCode = "404", description = "Base não encontrada")
-    })
+    // POST /energias → 201 Created
     @PostMapping
     public ResponseEntity<EntityModel<EnergiaListagemDTO>> criar(
             @RequestBody @Valid EnergiaCadastroDTO dto) {
@@ -60,53 +46,32 @@ public class EnergiaController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    @Operation(summary = "Lista todos os recursos de energia", responses = {
-            @ApiResponse(responseCode = "200", description = "Energias encontradas",
-                    content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = EnergiaListagemDTO.class))))
-    })
+    // GET /energias → 200 OK
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<EnergiaListagemDTO>>> listarTodos() {
-
         List<EntityModel<EnergiaListagemDTO>> lista = energiaService.readAllEnergias()
                 .stream()
                 .map(assembler::toModel)
                 .toList();
 
-        CollectionModel<EntityModel<EnergiaListagemDTO>> collection = CollectionModel.of(
-                lista,
-                linkTo(methodOn(EnergiaController.class).listarTodos()).withSelfRel()
-        );
+        CollectionModel<EntityModel<EnergiaListagemDTO>> collection = CollectionModel.of(lista,
+                linkTo(methodOn(EnergiaController.class).listarTodos()).withSelfRel());
 
         return ResponseEntity.ok(collection);
     }
 
-    @Operation(summary = "Busca um recurso de energia pelo id", responses = {
-            @ApiResponse(responseCode = "200", description = "Energia encontrada",
-                    content = @Content(schema = @Schema(implementation = EnergiaListagemDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Energia não encontrada")
-    })
+    // GET /energias/{id} → 200 OK
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<EnergiaListagemDTO>> buscarPorId(@PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                assembler.toModel(energiaService.readEnergiaById(id))
-        );
+        return ResponseEntity.ok(assembler.toModel(energiaService.readEnergiaById(id)));
     }
 
-    @Operation(summary = "Atualiza um recurso de energia", responses = {
-            @ApiResponse(responseCode = "200", description = "Energia atualizada com sucesso",
-                    content = @Content(schema = @Schema(implementation = EnergiaListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao atualizar energia"),
-            @ApiResponse(responseCode = "404", description = "Energia ou base não encontrada")
-    })
+    // PUT /energias/{id} → 200 OK
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<EnergiaListagemDTO>> atualizar(
             @PathVariable Long id,
             @RequestBody @Valid EnergiaAtualizarDTO dto) {
 
-        return ResponseEntity.ok(
-                assembler.toModel(energiaService.updateEnergia(id, dto))
-        );
+        return ResponseEntity.ok(assembler.toModel(energiaService.updateEnergia(id, dto)));
     }
 }

@@ -29,10 +29,16 @@ public class Movimentacao {
     @JoinColumn(name = "recurso_id", nullable = false)
     private Recurso recurso;
 
+    /**
+     * Regra 9: CONSUMO ou REABASTECIMENTO.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_movimentacao", nullable = false, length = 30)
     private TipoMovimentacao tipoMovimentacao;
 
+    /**
+     * Regra 1/15: Quantidade obrigatória e maior que zero.
+     */
     @Column(name = "quantidade", nullable = false)
     private Double quantidade;
 

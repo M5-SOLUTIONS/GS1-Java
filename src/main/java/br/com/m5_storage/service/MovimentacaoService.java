@@ -3,7 +3,6 @@ package br.com.m5_storage.service;
 import br.com.m5_storage.dto.movimentacao.MovimentacaoCadastroDTO;
 import br.com.m5_storage.dto.movimentacao.MovimentacaoListagemDTO;
 import br.com.m5_storage.entity.alerta.Alerta;
-import br.com.m5_storage.entity.base.Base;
 import br.com.m5_storage.entity.movimentacao.Movimentacao;
 import br.com.m5_storage.entity.movimentacao.TipoMovimentacao;
 import br.com.m5_storage.entity.recurso.Recurso;
@@ -43,7 +42,6 @@ public class MovimentacaoService {
 
     @Transactional
     public MovimentacaoListagemDTO registrarMovimentacao(MovimentacaoCadastroDTO dto) {
-
         Recurso recurso = recursoRepository.findById(dto.recursoId())
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Recurso não encontrado com id: " + dto.recursoId()
@@ -53,8 +51,6 @@ public class MovimentacaoService {
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Usuário não encontrado com id: " + dto.usuarioId()
                 ));
-
-        validarMesmaBase(usuario, recurso);
 
         if (dto.tipoMovimentacao() == TipoMovimentacao.CONSUMO) {
             realizarConsumo(recurso, dto.quantidade());
@@ -74,9 +70,9 @@ public class MovimentacaoService {
         return toDTO(movimentacaoRepository.save(movimentacao));
     }
 
+    // Regra 20: histórico permanente por recurso
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByRecurso(Long recursoId) {
-
         return movimentacaoRepository
                 .findByRecursoIdOrderByDataMovimentacaoDesc(recursoId)
                 .stream()
@@ -84,9 +80,9 @@ public class MovimentacaoService {
                 .toList();
     }
 
+    // Regra 10: histórico por usuário
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByUsuario(Long usuarioId) {
-
         return movimentacaoRepository
                 .findByUsuarioIdOrderByDataMovimentacaoDesc(usuarioId)
                 .stream()
@@ -94,74 +90,69 @@ public class MovimentacaoService {
                 .toList();
     }
 
-    private void realizarConsumo(Recurso recurso, Double quantidade) {
+    // ── lógica de estoque ────────────────────────────────────
 
+    /**
+     * Regra 2: CONSUMO reduz quantidade.
+     * Regra 1: resultado nunca negativo.
+     */
+    private void realizarConsumo(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() - quantidade;
 
         if (novaQuantidade < 0) {
             throw new IllegalArgumentException(
-                    "Estoque insuficiente. Disponível: "
-                            + recurso.getQuantidade()
-                            + ", solicitado: "
-                            + quantidade
+                    "Estoque insuficiente. Disponível: " + recurso.getQuantidade()
+                            + ", solicitado: " + quantidade
             );
         }
 
         recurso.setQuantidade(novaQuantidade);
-
         atualizarStatusEAlertas(recurso);
     }
 
+    /**
+     * Regra 2: REABASTECIMENTO aumenta quantidade.
+     * Regra 5: resolve alertas se voltar ao nível seguro.
+     */
     private void realizarReabastecimento(Recurso recurso, Double quantidade) {
-
         recurso.setQuantidade(recurso.getQuantidade() + quantidade);
-
         atualizarStatusEAlertas(recurso);
     }
 
+    /**
+     * Regras 3, 4, 5, 8: atualiza status e gerencia alertas.
+     */
     private void atualizarStatusEAlertas(Recurso recurso) {
-
         StatusRecurso novoStatus = recursoService.calcularStatus(
-                recurso.getQuantidade(),
-                recurso.getMinimo()
+                recurso.getQuantidade(), recurso.getMinimo()
         );
-
         recurso.setStatus(novoStatus);
         recurso.setUltimaAtualizacao(LocalDateTime.now());
-
         recursoRepository.save(recurso);
 
-        if (!recurso.getCritico()) {
-            return;
-        }
+        // Regra 4: apenas recursos críticos geram alertas
+        if (!recurso.getCritico()) return;
 
-        if (novoStatus == StatusRecurso.ATENCAO
-                || novoStatus == StatusRecurso.CRITICO) {
-
+        if (novoStatus == StatusRecurso.ATENCAO || novoStatus == StatusRecurso.CRITICO) {
+            // Regra 3: gera alerta somente se não houver um ativo
             boolean jaTemAlerta = !alertaRepository
-                    .findByRecursoIdAndResolvidoFalse(recurso.getId())
-                    .isEmpty();
+                    .findByRecursoIdAndResolvidoFalse(recurso.getId()).isEmpty();
 
             if (!jaTemAlerta) {
-
                 Alerta alerta = Alerta.builder()
                         .recurso(recurso)
-                        .mensagem(
-                                "Recurso "
-                                        + recurso.getNome()
-                                        + " atingiu nível crítico. Quantidade atual: "
-                                        + recurso.getQuantidade()
-                        )
+                        .mensagem("Recurso " + recurso.getNome()
+                                + " atingiu nível crítico. Quantidade atual: "
+                                + recurso.getQuantidade())
                         .nivel(novoStatus.name())
                         .resolvido(false)
                         .dataAlerta(LocalDateTime.now())
                         .build();
-
                 alertaRepository.save(alerta);
             }
 
         } else if (novoStatus == StatusRecurso.OK) {
-
+            // Regra 5: resolve alertas ao voltar ao nível seguro
             alertaRepository.findByRecursoIdAndResolvidoFalse(recurso.getId())
                     .forEach(alerta -> {
                         alerta.setResolvido(true);
@@ -170,38 +161,15 @@ public class MovimentacaoService {
         }
     }
 
-    private void validarMesmaBase(Usuario usuario, Recurso recurso) {
-
-        Base baseUsuario = usuario.getBase();
-        Base baseRecurso = recurso.getBase();
-
-        if (baseUsuario == null || baseRecurso == null) {
-            throw new IllegalArgumentException(
-                    "Usuário ou recurso sem base vinculada."
-            );
-        }
-
-        if (!baseUsuario.getId().equals(baseRecurso.getId())) {
-            throw new IllegalArgumentException(
-                    "O usuário não pertence à mesma base do recurso."
-            );
-        }
-    }
+    // ── helpers ──────────────────────────────────────────────
 
     private MovimentacaoListagemDTO toDTO(Movimentacao m) {
-
         return new MovimentacaoListagemDTO(
                 m.getId(),
-
                 m.getRecurso().getId(),
                 m.getRecurso().getNome(),
-
                 m.getUsuario().getId(),
                 m.getUsuario().getNome(),
-
-                m.getUsuario().getBase().getId(),
-                m.getUsuario().getBase().getNome(),
-
                 m.getTipoMovimentacao(),
                 m.getQuantidade(),
                 m.getDescricao(),

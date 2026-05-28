@@ -6,8 +6,6 @@ public record AlertaListagemDTO(
         Long id,
         Long recursoId,
         String recursoNome,
-        Long baseId,
-        String baseNome,
         String mensagem,
         String nivel,
         Boolean resolvido,

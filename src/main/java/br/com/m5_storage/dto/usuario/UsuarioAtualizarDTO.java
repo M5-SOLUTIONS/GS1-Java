@@ -2,7 +2,6 @@ package br.com.m5_storage.dto.usuario;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UsuarioAtualizarDTO(
@@ -18,8 +17,5 @@ public record UsuarioAtualizarDTO(
 
         @NotBlank(message = "Senha é obrigatória")
         @Size(max = 100)
-        String senha,
-
-        @NotNull(message = "Base é obrigatória")
-        Long baseId
+        String senha
 ) {}
