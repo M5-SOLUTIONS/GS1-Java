@@ -1,17 +1,4 @@
 -- =========================================
--- T_BASES
--- =========================================
-
-CREATE TABLE t_bases (
-
-                         id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
-                         nome VARCHAR2(100) NOT NULL UNIQUE
-);
-
-
-
--- =========================================
 -- T_USUARIOS
 -- =========================================
 
@@ -23,13 +10,7 @@ CREATE TABLE t_usuarios (
 
                             email VARCHAR2(150) UNIQUE NOT NULL,
 
-                            senha VARCHAR2(100) NOT NULL,
-
-                            base_id NUMBER NOT NULL,
-
-                            CONSTRAINT fk_usuario_base
-                                FOREIGN KEY (base_id)
-                                    REFERENCES t_bases(id)
+                            senha VARCHAR2(100) NOT NULL
 );
 
 
@@ -58,13 +39,7 @@ CREATE TABLE t_recursos (
 
                             nivel VARCHAR2(30),
 
-                            ultima_atualizacao TIMESTAMP,
-
-                            base_id NUMBER NOT NULL,
-
-                            CONSTRAINT fk_recurso_base
-                                FOREIGN KEY (base_id)
-                                    REFERENCES t_bases(id)
+                            ultima_atualizacao TIMESTAMP
 );
 
 
