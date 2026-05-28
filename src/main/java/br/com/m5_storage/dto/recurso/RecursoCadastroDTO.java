@@ -20,6 +20,12 @@ public record RecursoCadastroDTO(
         @Positive(message = "Mínimo deve ser maior que zero")
         Double minimo,
 
-        // Regra 4: define se o recurso gera alertas
-        Boolean critico
+        @NotNull(message = "Capacidade máxima é obrigatória")
+        @Positive(message = "Capacidade máxima deve ser maior que zero")
+        Double capacidadeMaxima,
+
+        Boolean critico,
+
+        @NotNull(message = "Base é obrigatória")
+        Long baseId
 ) {}

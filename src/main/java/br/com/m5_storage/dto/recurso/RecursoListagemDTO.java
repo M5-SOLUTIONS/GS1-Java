@@ -10,7 +10,9 @@ public record RecursoListagemDTO(
         String categoria,
         Double quantidade,
         Double minimo,
+        Double capacidadeMaxima,
         Boolean critico,
         StatusRecurso status,
-        LocalDateTime ultimaAtualizacao
+        LocalDateTime ultimaAtualizacao,
+        Long baseId
 ) {}

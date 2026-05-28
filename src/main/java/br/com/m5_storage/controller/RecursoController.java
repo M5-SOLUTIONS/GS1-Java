@@ -74,6 +74,29 @@ public class RecursoController {
         return ResponseEntity.ok(collection);
     }
 
+    @Operation(summary = "Lista recursos por base", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class)))
+    })
+    @GetMapping("/base/{baseId}")
+    public ResponseEntity<CollectionModel<EntityModel<RecursoListagemDTO>>> listarPorBase(
+            @PathVariable Long baseId) {
+
+        List<EntityModel<RecursoListagemDTO>> lista = recursoService.readRecursosByBase(baseId)
+                .stream()
+                .map(assembler::toModel)
+                .toList();
+
+        CollectionModel<EntityModel<RecursoListagemDTO>> collection =
+                CollectionModel.of(
+                        lista,
+                        linkTo(methodOn(RecursoController.class).listarPorBase(baseId)).withSelfRel(),
+                        linkTo(methodOn(RecursoController.class).listarTodos()).withRel("todos")
+                );
+
+        return ResponseEntity.ok(collection);
+    }
+
     @Operation(summary = "Busca um recurso pelo ID", responses = {
             @ApiResponse(responseCode = "200", description = "Recurso encontrado",
                     content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),

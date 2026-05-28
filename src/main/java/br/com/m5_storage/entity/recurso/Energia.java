@@ -17,12 +17,6 @@ public class Energia extends Recurso {
     @Column(name = "tipo_energia", length = 50)
     private String tipoEnergia;
 
-    /**
-     * Porcentagem do nível atual em relação ao mínimo de segurança.
-     * Calculado, não armazenado no banco.
-     *
-     * Exemplo: quantidade=80, minimo=100 → 80%
-     */
     @Transient
     public Double getPorcentagem() {
         if (getMinimo() == null || getMinimo() == 0) return null;

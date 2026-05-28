@@ -1,5 +1,6 @@
 package br.com.m5_storage.entity.recurso;
 
+import br.com.m5_storage.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -20,6 +21,10 @@ public class Recurso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "base_id", nullable = false)
+    private Base base;
+
     @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 
@@ -32,17 +37,12 @@ public class Recurso {
     @Column(name = "minimo", nullable = false)
     private Double minimo;
 
-    /**
-     * Regra 3/4: Apenas recursos críticos geram alertas.
-     * true = este recurso pode gerar alertas ao atingir nível mínimo.
-     */
+    @Column(name = "capacidade_maxima", nullable = false)
+    private Double capacidadeMaxima;
+
     @Column(name = "critico", nullable = false)
     private Boolean critico = false;
 
-    /**
-     * Regra 7/8: Status depende da quantidade vs mínimo.
-     * OK | ATENCAO | CRITICO
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30)
     private StatusRecurso status;
