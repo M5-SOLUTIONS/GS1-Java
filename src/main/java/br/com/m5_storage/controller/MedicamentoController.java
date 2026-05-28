@@ -5,6 +5,11 @@ import br.com.m5_storage.dto.medicamento.MedicamentoCadastroDTO;
 import br.com.m5_storage.dto.medicamento.MedicamentoListagemDTO;
 import br.com.m5_storage.entity.recurso.MedicamentoAssembler;
 import br.com.m5_storage.service.MedicamentoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import org.springframework.hateoas.CollectionModel;
@@ -20,6 +25,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/medicamentos")
+@Tag(name = "Medicamentos", description = "Gerenciamento de recursos do tipo medicamento")
 public class MedicamentoController {
 
     private final MedicamentoService medicamentoService;
@@ -31,7 +37,11 @@ public class MedicamentoController {
         this.assembler = assembler;
     }
 
-    // POST /medicamentos → 201 Created
+    @Operation(summary = "Cadastra um medicamento", responses = {
+            @ApiResponse(responseCode = "201", description = "Medicamento cadastrado com sucesso",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
     @PostMapping
     public ResponseEntity<EntityModel<MedicamentoListagemDTO>> criar(
             @RequestBody @Valid MedicamentoCadastroDTO dto) {
@@ -47,7 +57,10 @@ public class MedicamentoController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    // GET /medicamentos → 200 OK
+    @Operation(summary = "Lista todos os medicamentos", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class)))
+    })
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<MedicamentoListagemDTO>>> listarTodos() {
         List<EntityModel<MedicamentoListagemDTO>> lista = medicamentoService.readAllMedicamentos()
@@ -61,13 +74,20 @@ public class MedicamentoController {
         return ResponseEntity.ok(collection);
     }
 
-    // GET /medicamentos/{id} → 200 OK
+    @Operation(summary = "Busca um medicamento pelo ID", responses = {
+            @ApiResponse(responseCode = "200", description = "Medicamento encontrado",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Medicamento não encontrado")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<MedicamentoListagemDTO>> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(assembler.toModel(medicamentoService.readMedicamentoById(id)));
     }
 
-    // GET /medicamentos/vencidos → 200 OK  (Regra 11)
+    @Operation(summary = "Lista medicamentos com validade vencida", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class)))
+    })
     @GetMapping("/vencidos")
     public ResponseEntity<CollectionModel<EntityModel<MedicamentoListagemDTO>>> listarVencidos() {
         List<EntityModel<MedicamentoListagemDTO>> lista = medicamentoService.readMedicamentosVencidos()
@@ -82,7 +102,10 @@ public class MedicamentoController {
         return ResponseEntity.ok(collection);
     }
 
-    // GET /medicamentos/a-vencer?dias=30 → 200 OK  (Regra 11)
+    @Operation(summary = "Lista medicamentos a vencer nos próximos N dias", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class)))
+    })
     @GetMapping("/a-vencer")
     public ResponseEntity<CollectionModel<EntityModel<MedicamentoListagemDTO>>> listarAVencer(
             @RequestParam(defaultValue = "30") int dias) {
@@ -99,7 +122,12 @@ public class MedicamentoController {
         return ResponseEntity.ok(collection);
     }
 
-    // PUT /medicamentos/{id} → 200 OK
+    @Operation(summary = "Atualiza um medicamento", responses = {
+            @ApiResponse(responseCode = "200", description = "Medicamento atualizado com sucesso",
+                    content = @Content(schema = @Schema(implementation = MedicamentoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "404", description = "Medicamento não encontrado")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<MedicamentoListagemDTO>> atualizar(
             @PathVariable Long id,

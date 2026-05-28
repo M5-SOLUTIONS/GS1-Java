@@ -6,6 +6,11 @@ import br.com.m5_storage.dto.recurso.RecursoListagemDTO;
 import br.com.m5_storage.entity.recurso.RecursoAssembler;
 import br.com.m5_storage.entity.recurso.StatusRecurso;
 import br.com.m5_storage.service.RecursoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import org.springframework.hateoas.CollectionModel;
@@ -21,6 +26,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/recursos")
+@Tag(name = "Recursos", description = "Gerenciamento de recursos genéricos do estoque")
 public class RecursoController {
 
     private final RecursoService recursoService;
@@ -31,7 +37,11 @@ public class RecursoController {
         this.assembler = assembler;
     }
 
-    // POST /recursos → 201 Created
+    @Operation(summary = "Cadastra um recurso", responses = {
+            @ApiResponse(responseCode = "201", description = "Recurso cadastrado com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
     @PostMapping
     public ResponseEntity<EntityModel<RecursoListagemDTO>> criar(
             @RequestBody @Valid RecursoCadastroDTO dto) {
@@ -47,7 +57,10 @@ public class RecursoController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    // GET /recursos → 200 OK
+    @Operation(summary = "Lista todos os recursos", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class)))
+    })
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<RecursoListagemDTO>>> listarTodos() {
         List<EntityModel<RecursoListagemDTO>> lista = recursoService.readAllRecursos()
@@ -61,13 +74,20 @@ public class RecursoController {
         return ResponseEntity.ok(collection);
     }
 
-    // GET /recursos/{id} → 200 OK
+    @Operation(summary = "Busca um recurso pelo ID", responses = {
+            @ApiResponse(responseCode = "200", description = "Recurso encontrado",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<RecursoListagemDTO>> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(assembler.toModel(recursoService.readRecursoById(id)));
     }
 
-    // GET /recursos/status/{status} → 200 OK  (Regra 16: dashboard)
+    @Operation(summary = "Lista recursos por status (dashboard)", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class)))
+    })
     @GetMapping("/status/{status}")
     public ResponseEntity<CollectionModel<EntityModel<RecursoListagemDTO>>> listarPorStatus(
             @PathVariable StatusRecurso status) {
@@ -84,7 +104,12 @@ public class RecursoController {
         return ResponseEntity.ok(collection);
     }
 
-    // PUT /recursos/{id} → 200 OK
+    @Operation(summary = "Atualiza um recurso", responses = {
+            @ApiResponse(responseCode = "200", description = "Recurso atualizado com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<RecursoListagemDTO>> atualizar(
             @PathVariable Long id,
@@ -93,7 +118,11 @@ public class RecursoController {
         return ResponseEntity.ok(assembler.toModel(recursoService.updateRecurso(id, dto)));
     }
 
-    // DELETE /recursos/{id} → 204 No Content
+    @Operation(summary = "Remove um recurso", responses = {
+            @ApiResponse(responseCode = "204", description = "Recurso removido com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Recurso possui movimentações vinculadas")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         recursoService.deleteRecurso(id);
