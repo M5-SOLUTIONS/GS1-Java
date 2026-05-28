@@ -4,6 +4,11 @@ import br.com.m5_storage.dto.movimentacao.MovimentacaoCadastroDTO;
 import br.com.m5_storage.dto.movimentacao.MovimentacaoListagemDTO;
 import br.com.m5_storage.entity.movimentacao.MovimentacaoAssembler;
 import br.com.m5_storage.service.MovimentacaoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import org.springframework.hateoas.CollectionModel;
@@ -19,6 +24,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/movimentacoes")
+@Tag(name = "Movimentações", description = "Registro de consumo e reabastecimento de recursos")
 public class MovimentacaoController {
 
     private final MovimentacaoService movimentacaoService;
@@ -30,8 +36,12 @@ public class MovimentacaoController {
         this.assembler = assembler;
     }
 
-    // POST /movimentacoes → 201 Created
-    // Regras 1, 2, 3, 4, 5, 8, 9, 10, 15
+    @Operation(summary = "Registra uma movimentação (consumo ou reabastecimento)", responses = {
+            @ApiResponse(responseCode = "201", description = "Movimentação registrada com sucesso",
+                    content = @Content(schema = @Schema(implementation = MovimentacaoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou estoque insuficiente"),
+            @ApiResponse(responseCode = "404", description = "Recurso ou usuário não encontrado")
+    })
     @PostMapping
     public ResponseEntity<EntityModel<MovimentacaoListagemDTO>> registrar(
             @RequestBody @Valid MovimentacaoCadastroDTO dto) {
@@ -47,7 +57,11 @@ public class MovimentacaoController {
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
 
-    // GET /movimentacoes/recurso/{recursoId} → 200 OK  (Regra 20: histórico)
+    @Operation(summary = "Lista o histórico de movimentações de um recurso", responses = {
+            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso",
+                    content = @Content(schema = @Schema(implementation = MovimentacaoListagemDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
+    })
     @GetMapping("/recurso/{recursoId}")
     public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorRecurso(
             @PathVariable Long recursoId) {
@@ -64,7 +78,11 @@ public class MovimentacaoController {
         return ResponseEntity.ok(collection);
     }
 
-    // GET /movimentacoes/usuario/{usuarioId} → 200 OK  (Regra 10)
+    @Operation(summary = "Lista o histórico de movimentações de um usuário", responses = {
+            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso",
+                    content = @Content(schema = @Schema(implementation = MovimentacaoListagemDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorUsuario(
             @PathVariable Long usuarioId) {
