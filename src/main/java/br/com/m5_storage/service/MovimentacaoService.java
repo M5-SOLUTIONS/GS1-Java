@@ -42,6 +42,7 @@ public class MovimentacaoService {
 
     @Transactional
     public MovimentacaoListagemDTO registrarMovimentacao(MovimentacaoCadastroDTO dto) {
+
         Recurso recurso = recursoRepository.findById(dto.recursoId())
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Recurso não encontrado com id: " + dto.recursoId()
@@ -52,15 +53,23 @@ public class MovimentacaoService {
                         "Usuário não encontrado com id: " + dto.usuarioId()
                 ));
 
+        if (dto.quantidade() == null || dto.quantidade() <= 0) {
+            throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+        }
+
+        // ── lógica de estoque ──
         if (dto.tipoMovimentacao() == TipoMovimentacao.CONSUMO) {
             realizarConsumo(recurso, dto.quantidade());
-        } else {
+        } else if (dto.tipoMovimentacao() == TipoMovimentacao.REABASTECIMENTO) {
             realizarReabastecimento(recurso, dto.quantidade());
+        } else {
+            throw new IllegalArgumentException("Tipo de movimentação inválido");
         }
 
         Movimentacao movimentacao = Movimentacao.builder()
                 .recurso(recurso)
                 .usuario(usuario)
+                .base(recurso.getBase())
                 .tipoMovimentacao(dto.tipoMovimentacao())
                 .quantidade(dto.quantidade())
                 .descricao(dto.descricao())
@@ -70,7 +79,7 @@ public class MovimentacaoService {
         return toDTO(movimentacaoRepository.save(movimentacao));
     }
 
-    // Regra 20: histórico permanente por recurso
+    // Regra 20: histórico por recurso
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByRecurso(Long recursoId) {
         return movimentacaoRepository
@@ -90,19 +99,34 @@ public class MovimentacaoService {
                 .toList();
     }
 
+    // NOVO: histórico por base (Regra 20 estendida)
+    @Transactional(readOnly = true)
+    public List<MovimentacaoListagemDTO> readMovimentacoesByBase(Long baseId) {
+        return movimentacaoRepository
+                .findByRecurso_Base_IdOrderByDataMovimentacaoDesc(baseId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    // NOVO: histórico por base + tipo
+    @Transactional(readOnly = true)
+    public List<MovimentacaoListagemDTO> readMovimentacoesByBaseAndTipo(Long baseId, TipoMovimentacao tipo) {
+        return movimentacaoRepository
+                .findByRecurso_Base_IdAndTipoMovimentacaoOrderByDataMovimentacaoDesc(baseId, tipo)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
     // ── lógica de estoque ────────────────────────────────────
 
-    /**
-     * Regra 2: CONSUMO reduz quantidade.
-     * Regra 1: resultado nunca negativo.
-     */
     private void realizarConsumo(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() - quantidade;
 
         if (novaQuantidade < 0) {
             throw new IllegalArgumentException(
                     "Estoque insuficiente. Disponível: " + recurso.getQuantidade()
-                            + ", solicitado: " + quantidade
             );
         }
 
@@ -110,49 +134,47 @@ public class MovimentacaoService {
         atualizarStatusEAlertas(recurso);
     }
 
-    /**
-     * Regra 2: REABASTECIMENTO aumenta quantidade.
-     * Regra 5: resolve alertas se voltar ao nível seguro.
-     */
     private void realizarReabastecimento(Recurso recurso, Double quantidade) {
         recurso.setQuantidade(recurso.getQuantidade() + quantidade);
         atualizarStatusEAlertas(recurso);
     }
 
-    /**
-     * Regras 3, 4, 5, 8: atualiza status e gerencia alertas.
-     */
     private void atualizarStatusEAlertas(Recurso recurso) {
+
         StatusRecurso novoStatus = recursoService.calcularStatus(
-                recurso.getQuantidade(), recurso.getMinimo()
+                recurso.getQuantidade(),
+                recurso.getMinimo(),
+                recurso.getCapacidadeMaxima()
         );
+
         recurso.setStatus(novoStatus);
         recurso.setUltimaAtualizacao(LocalDateTime.now());
         recursoRepository.save(recurso);
 
-        // Regra 4: apenas recursos críticos geram alertas
         if (!recurso.getCritico()) return;
 
         if (novoStatus == StatusRecurso.ATENCAO || novoStatus == StatusRecurso.CRITICO) {
-            // Regra 3: gera alerta somente se não houver um ativo
+
             boolean jaTemAlerta = !alertaRepository
-                    .findByRecursoIdAndResolvidoFalse(recurso.getId()).isEmpty();
+                    .findByRecursoIdAndResolvidoFalse(recurso.getId())
+                    .isEmpty();
 
             if (!jaTemAlerta) {
                 Alerta alerta = Alerta.builder()
                         .recurso(recurso)
                         .mensagem("Recurso " + recurso.getNome()
-                                + " atingiu nível crítico. Quantidade atual: "
+                                + " em nível crítico. Quantidade: "
                                 + recurso.getQuantidade())
                         .nivel(novoStatus.name())
                         .resolvido(false)
                         .dataAlerta(LocalDateTime.now())
                         .build();
+
                 alertaRepository.save(alerta);
             }
 
         } else if (novoStatus == StatusRecurso.OK) {
-            // Regra 5: resolve alertas ao voltar ao nível seguro
+
             alertaRepository.findByRecursoIdAndResolvidoFalse(recurso.getId())
                     .forEach(alerta -> {
                         alerta.setResolvido(true);
@@ -160,8 +182,6 @@ public class MovimentacaoService {
                     });
         }
     }
-
-    // ── helpers ──────────────────────────────────────────────
 
     private MovimentacaoListagemDTO toDTO(Movimentacao m) {
         return new MovimentacaoListagemDTO(

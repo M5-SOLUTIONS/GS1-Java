@@ -98,4 +98,45 @@ public class MovimentacaoController {
 
         return ResponseEntity.ok(collection);
     }
+
+    @Operation(summary = "Lista o histórico de movimentações de uma base")
+    @GetMapping("/base/{baseId}")
+    public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorBase(
+            @PathVariable Long baseId) {
+
+        List<EntityModel<MovimentacaoListagemDTO>> lista =
+                movimentacaoService.readMovimentacoesByBase(baseId)
+                        .stream()
+                        .map(assembler::toModel)
+                        .toList();
+
+        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection =
+                CollectionModel.of(
+                        lista,
+                        linkTo(methodOn(MovimentacaoController.class).listarPorBase(baseId)).withSelfRel()
+                );
+
+        return ResponseEntity.ok(collection);
+    }
+
+    @Operation(summary = "Lista movimentações por base e tipo")
+    @GetMapping("/base/{baseId}/tipo/{tipo}")
+    public ResponseEntity<CollectionModel<EntityModel<MovimentacaoListagemDTO>>> listarPorBaseETipo(
+            @PathVariable Long baseId,
+            @PathVariable br.com.m5_storage.entity.movimentacao.TipoMovimentacao tipo) {
+
+        List<EntityModel<MovimentacaoListagemDTO>> lista =
+                movimentacaoService.readMovimentacoesByBaseAndTipo(baseId, tipo)
+                        .stream()
+                        .map(assembler::toModel)
+                        .toList();
+
+        CollectionModel<EntityModel<MovimentacaoListagemDTO>> collection =
+                CollectionModel.of(
+                        lista,
+                        linkTo(methodOn(MovimentacaoController.class).listarPorBaseETipo(baseId, tipo)).withSelfRel()
+                );
+
+        return ResponseEntity.ok(collection);
+    }
 }

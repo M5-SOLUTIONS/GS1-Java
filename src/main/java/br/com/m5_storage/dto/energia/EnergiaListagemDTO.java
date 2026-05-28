@@ -11,9 +11,10 @@ public record EnergiaListagemDTO(
         String categoria,
         Double quantidade,
         Double minimo,
+        Double capacidadeMaxima,
         Boolean critico,
         StatusRecurso status,
         String tipoEnergia,
-        Double porcentagem,       // calculado no service — não persiste
+        Double porcentagem,
         LocalDateTime ultimaAtualizacao
 ) {}

@@ -19,6 +19,10 @@ public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Long
     // Regra 10: histórico por usuário
     List<Movimentacao> findByUsuarioIdOrderByDataMovimentacaoDesc(Long usuarioId);
 
-    // Filtro por tipo
-    List<Movimentacao> findByRecursoIdAndTipoMovimentacao(Long recursoId, TipoMovimentacao tipo);
+    List<Movimentacao> findByRecurso_Base_IdOrderByDataMovimentacaoDesc(Long baseId);
+
+    List<Movimentacao> findByRecurso_Base_IdAndTipoMovimentacaoOrderByDataMovimentacaoDesc(
+            Long baseId,
+            TipoMovimentacao tipo
+    );
 }

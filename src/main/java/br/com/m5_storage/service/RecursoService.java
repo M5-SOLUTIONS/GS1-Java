@@ -5,6 +5,7 @@ import br.com.m5_storage.entity.base.Base;
 import br.com.m5_storage.entity.recurso.Recurso;
 import br.com.m5_storage.entity.recurso.StatusRecurso;
 import br.com.m5_storage.exception.IdNaoEncontradoException;
+import br.com.m5_storage.repository.AlertaRepository;
 import br.com.m5_storage.repository.BaseRepository;
 import br.com.m5_storage.repository.MovimentacaoRepository;
 import br.com.m5_storage.repository.RecursoRepository;
@@ -21,13 +22,16 @@ public class RecursoService {
     private final RecursoRepository recursoRepository;
     private final MovimentacaoRepository movimentacaoRepository;
     private final BaseRepository baseRepository;
+    private final AlertaRepository alertaRepository;
 
     public RecursoService(RecursoRepository recursoRepository,
                           MovimentacaoRepository movimentacaoRepository,
-                          BaseRepository baseRepository) {
+                          BaseRepository baseRepository,
+                          AlertaRepository alertaRepository) {
         this.recursoRepository = recursoRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.baseRepository = baseRepository;
+        this.alertaRepository = alertaRepository;
     }
 
     @Transactional
@@ -94,10 +98,21 @@ public class RecursoService {
         recurso.setMinimo(dto.minimo());
         recurso.setCapacidadeMaxima(dto.capacidadeMaxima());
         recurso.setCritico(dto.critico() != null && dto.critico());
-        recurso.setStatus(calcularStatus(dto.quantidade(), dto.minimo(), dto.capacidadeMaxima()));
+
+        // recalcula status
+        recurso.setStatus(calcularStatus(
+                dto.quantidade(),
+                dto.minimo(),
+                dto.capacidadeMaxima()
+        ));
+
         recurso.setUltimaAtualizacao(LocalDateTime.now());
 
-        return toDTO(recursoRepository.save(recurso));
+        recursoRepository.save(recurso);
+
+        sincronizarAlertas(recurso, alertaRepository);
+
+        return toDTO(recurso);
     }
 
     @Transactional
@@ -123,17 +138,54 @@ public class RecursoService {
     }
 
     public StatusRecurso calcularStatus(Double quantidade, Double minimo, Double capacidadeMaxima) {
+
         double limiteAtencao = capacidadeMaxima / 3;
 
-        if (quantidade > limiteAtencao) {
-            return StatusRecurso.OK;
+        if (quantidade <= minimo) {
+            return StatusRecurso.CRITICO;
         }
 
-        if (quantidade > minimo) {
+        if (quantidade <= limiteAtencao) {
             return StatusRecurso.ATENCAO;
         }
 
-        return StatusRecurso.CRITICO;
+        return StatusRecurso.OK;
+    }
+
+    private void sincronizarAlertas(Recurso recurso, AlertaRepository alertaRepository) {
+
+        if (!recurso.getCritico()) return;
+
+        if (recurso.getStatus() == StatusRecurso.ATENCAO ||
+                recurso.getStatus() == StatusRecurso.CRITICO) {
+
+            boolean jaTemAlerta = !alertaRepository
+                    .findByRecursoIdAndResolvidoFalse(recurso.getId())
+                    .isEmpty();
+
+            if (!jaTemAlerta) {
+
+                alertaRepository.save(
+                        br.com.m5_storage.entity.alerta.Alerta.builder()
+                                .recurso(recurso)
+                                .mensagem("Recurso " + recurso.getNome()
+                                        + " em nível crítico. Quantidade: "
+                                        + recurso.getQuantidade())
+                                .nivel(recurso.getStatus().name())
+                                .resolvido(false)
+                                .dataAlerta(LocalDateTime.now())
+                                .build()
+                );
+            }
+
+        } else if (recurso.getStatus() == StatusRecurso.OK) {
+
+            alertaRepository.findByRecursoIdAndResolvidoFalse(recurso.getId())
+                    .forEach(a -> {
+                        a.setResolvido(true);
+                        alertaRepository.save(a);
+                    });
+        }
     }
 
     public RecursoListagemDTO toDTO(Recurso r) {

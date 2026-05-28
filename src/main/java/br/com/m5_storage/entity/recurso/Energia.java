@@ -19,7 +19,7 @@ public class Energia extends Recurso {
 
     @Transient
     public Double getPorcentagem() {
-        if (getMinimo() == null || getMinimo() == 0) return null;
-        return (getQuantidade() / getMinimo()) * 100;
+        if (getCapacidadeMaxima() == null || getCapacidadeMaxima() == 0) return null;
+        return (getQuantidade() / getCapacidadeMaxima()) * 100;
     }
 }

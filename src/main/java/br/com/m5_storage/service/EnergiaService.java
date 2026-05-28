@@ -26,14 +26,25 @@ public class EnergiaService {
 
     @Transactional
     public EnergiaListagemDTO createEnergia(EnergiaCadastroDTO dto) {
+
         Energia energia = new Energia();
+
         energia.setNome(dto.nome());
         energia.setCategoria(dto.categoria());
         energia.setQuantidade(dto.quantidade());
         energia.setMinimo(dto.minimo());
+        energia.setCapacidadeMaxima(dto.capacidadeMaxima());
         energia.setCritico(dto.critico() != null && dto.critico());
         energia.setTipoEnergia(dto.tipoEnergia());
-        energia.setStatus(recursoService.calcularStatus(dto.quantidade(), dto.minimo()));
+
+        energia.setStatus(
+                recursoService.calcularStatus(
+                        dto.quantidade(),
+                        dto.minimo(),
+                        dto.capacidadeMaxima()
+                )
+        );
+
         energia.setUltimaAtualizacao(LocalDateTime.now());
 
         return toDTO(energiaRepository.save(energia));
@@ -54,15 +65,25 @@ public class EnergiaService {
 
     @Transactional
     public EnergiaListagemDTO updateEnergia(Long id, EnergiaAtualizarDTO dto) {
+
         Energia energia = findOrThrow(id);
 
         energia.setNome(dto.nome());
         energia.setCategoria(dto.categoria());
         energia.setQuantidade(dto.quantidade());
         energia.setMinimo(dto.minimo());
+        energia.setCapacidadeMaxima(dto.capacidadeMaxima());
         energia.setCritico(dto.critico() != null && dto.critico());
         energia.setTipoEnergia(dto.tipoEnergia());
-        energia.setStatus(recursoService.calcularStatus(dto.quantidade(), dto.minimo()));
+
+        energia.setStatus(
+                recursoService.calcularStatus(
+                        dto.quantidade(),
+                        dto.minimo(),
+                        dto.capacidadeMaxima()
+                )
+        );
+
         energia.setUltimaAtualizacao(LocalDateTime.now());
 
         return toDTO(energiaRepository.save(energia));
@@ -79,10 +100,16 @@ public class EnergiaService {
 
     private EnergiaListagemDTO toDTO(Energia e) {
         return new EnergiaListagemDTO(
-                e.getId(), e.getNome(), e.getCategoria(),
-                e.getQuantidade(), e.getMinimo(), e.getCritico(),
-                e.getStatus(), e.getTipoEnergia(),
-                e.getPorcentagem(),       // @Transient calculado na entidade
+                e.getId(),
+                e.getNome(),
+                e.getCategoria(),
+                e.getQuantidade(),
+                e.getMinimo(),
+                e.getCapacidadeMaxima(),
+                e.getCritico(),
+                e.getStatus(),
+                e.getTipoEnergia(),
+                e.getPorcentagem(),
                 e.getUltimaAtualizacao()
         );
     }

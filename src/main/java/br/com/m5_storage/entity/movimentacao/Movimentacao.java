@@ -1,5 +1,6 @@
 package br.com.m5_storage.entity.movimentacao;
 
+import br.com.m5_storage.entity.base.Base;
 import br.com.m5_storage.entity.recurso.Recurso;
 import br.com.m5_storage.entity.usuario.Usuario;
 import jakarta.persistence.*;
@@ -42,9 +43,13 @@ public class Movimentacao {
     @Column(name = "quantidade", nullable = false)
     private Double quantidade;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "base_id", nullable = false)
+    private Base base;
+
     @Column(name = "descricao", length = 255)
     private String descricao;
 
-    @Column(name = "data_movimentacao")
+    @Column(name = "data_movimentacao", nullable = false)
     private LocalDateTime dataMovimentacao;
 }

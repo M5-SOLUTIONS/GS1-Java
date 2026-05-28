@@ -23,6 +23,10 @@ public record EnergiaCadastroDTO(
         @Positive(message = "Mínimo deve ser maior que zero")
         Double minimo,
 
+        @NotNull(message = "Capacidade máxima é obrigatória")
+        @Positive(message = "Capacidade máxima deve ser maior que zero")
+        Double capacidadeMaxima,
+
         Boolean critico,
 
         @NotBlank(message = "Tipo de energia é obrigatório")

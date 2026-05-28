@@ -27,6 +27,7 @@ public class MedicamentoService {
 
     @Transactional
     public MedicamentoListagemDTO createMedicamento(MedicamentoCadastroDTO dto) {
+
         Medicamento medicamento = new Medicamento();
         medicamento.setNome(dto.nome());
         medicamento.setCategoria(dto.categoria());
@@ -34,7 +35,15 @@ public class MedicamentoService {
         medicamento.setMinimo(dto.minimo());
         medicamento.setCritico(dto.critico() != null && dto.critico());
         medicamento.setValidade(dto.validade());
-        medicamento.setStatus(recursoService.calcularStatus(dto.quantidade(), dto.minimo()));
+
+        medicamento.setStatus(
+                recursoService.calcularStatus(
+                        dto.quantidade(),
+                        dto.minimo(),
+                        medicamento.getCapacidadeMaxima()
+                )
+        );
+
         medicamento.setUltimaAtualizacao(LocalDateTime.now());
 
         return toDTO(medicamentoRepository.save(medicamento));
@@ -53,7 +62,6 @@ public class MedicamentoService {
         return toDTO(findOrThrow(id));
     }
 
-    // Regra 11: medicamentos com validade já vencida
     @Transactional(readOnly = true)
     public List<MedicamentoListagemDTO> readMedicamentosVencidos() {
         return medicamentoRepository
@@ -63,7 +71,6 @@ public class MedicamentoService {
                 .toList();
     }
 
-    // Regra 11: medicamentos que vencem nos próximos N dias
     @Transactional(readOnly = true)
     public List<MedicamentoListagemDTO> readMedicamentosAVencer(int dias) {
         return medicamentoRepository
@@ -75,6 +82,7 @@ public class MedicamentoService {
 
     @Transactional
     public MedicamentoListagemDTO updateMedicamento(Long id, MedicamentoAtualizarDTO dto) {
+
         Medicamento medicamento = findOrThrow(id);
 
         medicamento.setNome(dto.nome());
@@ -83,7 +91,15 @@ public class MedicamentoService {
         medicamento.setMinimo(dto.minimo());
         medicamento.setCritico(dto.critico() != null && dto.critico());
         medicamento.setValidade(dto.validade());
-        medicamento.setStatus(recursoService.calcularStatus(dto.quantidade(), dto.minimo()));
+
+        medicamento.setStatus(
+                recursoService.calcularStatus(
+                        dto.quantidade(),
+                        dto.minimo(),
+                        medicamento.getCapacidadeMaxima()
+                )
+        );
+
         medicamento.setUltimaAtualizacao(LocalDateTime.now());
 
         return toDTO(medicamentoRepository.save(medicamento));
@@ -100,9 +116,15 @@ public class MedicamentoService {
 
     private MedicamentoListagemDTO toDTO(Medicamento m) {
         return new MedicamentoListagemDTO(
-                m.getId(), m.getNome(), m.getCategoria(),
-                m.getQuantidade(), m.getMinimo(), m.getCritico(),
-                m.getStatus(), m.getValidade(), m.getUltimaAtualizacao()
+                m.getId(),
+                m.getNome(),
+                m.getCategoria(),
+                m.getQuantidade(),
+                m.getMinimo(),
+                m.getCritico(),
+                m.getStatus(),
+                m.getValidade(),
+                m.getUltimaAtualizacao()
         );
     }
 }
