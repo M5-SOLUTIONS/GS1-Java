@@ -1,6 +1,7 @@
 package br.com.m5_storage.entity.movimentacao;
 
 import br.com.m5_storage.entity.recurso.Recurso;
+import br.com.m5_storage.entity.setor.Setor;
 import br.com.m5_storage.entity.usuario.Usuario;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,30 +22,32 @@ public class Movimentacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Regra 11: usuário obrigatório
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    // Regra 10/15: recurso e setor obrigatórios
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "recurso_id", nullable = false)
     private Recurso recurso;
 
-    /**
-     * Regra 9: CONSUMO ou REABASTECIMENTO.
-     */
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "setor_id", nullable = false)
+    private Setor setor;
+
+    // Regra 12: tipo obrigatório
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_movimentacao", nullable = false, length = 30)
     private TipoMovimentacao tipoMovimentacao;
 
-    /**
-     * Regra 1/15: Quantidade obrigatória e maior que zero.
-     */
+    // Regra 13: quantidade > 0
     @Column(name = "quantidade", nullable = false)
     private Double quantidade;
 
     @Column(name = "descricao", length = 255)
     private String descricao;
 
-    @Column(name = "data_movimentacao")
+    @Column(name = "data_movimentacao", nullable = false)
     private LocalDateTime dataMovimentacao;
 }

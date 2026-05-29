@@ -1,8 +1,15 @@
 package br.com.m5_storage.dto.recurso;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+// Regra 15/18: campos obrigatórios + capacidade máxima
 public record RecursoCadastroDTO(
+
+        @NotNull(message = "Setor é obrigatório")
+        Long setorId,
 
         @NotBlank(message = "Nome é obrigatório")
         @Size(max = 100)
@@ -20,6 +27,9 @@ public record RecursoCadastroDTO(
         @Positive(message = "Mínimo deve ser maior que zero")
         Double minimo,
 
-        // Regra 4: define se o recurso gera alertas
+        @NotNull(message = "Capacidade máxima é obrigatória")
+        @Positive(message = "Capacidade máxima deve ser maior que zero")
+        Double capacidadeMaxima,
+
         Boolean critico
 ) {}

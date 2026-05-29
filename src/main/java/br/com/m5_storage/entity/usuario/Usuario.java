@@ -1,5 +1,6 @@
 package br.com.m5_storage.entity.usuario;
 
+import br.com.m5_storage.entity.base.Base;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,4 +27,8 @@ public class Usuario {
 
     @Column(name = "senha", nullable = false, length = 100)
     private String senha;
+
+    @ManyToOne
+    @JoinColumn(name = "base_id", nullable = false)
+    private Base base;
 }

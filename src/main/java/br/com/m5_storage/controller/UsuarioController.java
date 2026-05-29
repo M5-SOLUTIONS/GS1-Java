@@ -83,6 +83,26 @@ public class UsuarioController {
         return ResponseEntity.ok(assembler.toModel(usuarioService.readUsuarioById(id)));
     }
 
+    @Operation(summary = "Lista usuários por base", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class)))
+    })
+    @GetMapping("/base/{baseId}")
+    public ResponseEntity<CollectionModel<EntityModel<UsuarioListagemDTO>>> listarPorBase(
+            @PathVariable Long baseId) {
+
+        List<EntityModel<UsuarioListagemDTO>> lista = usuarioService.readUsuariosByBase(baseId)
+                .stream()
+                .map(assembler::toModel)
+                .toList();
+
+        CollectionModel<EntityModel<UsuarioListagemDTO>> collection =
+                CollectionModel.of(lista,
+                        linkTo(methodOn(UsuarioController.class).listarPorBase(baseId)).withSelfRel());
+
+        return ResponseEntity.ok(collection);
+    }
+
     @Operation(summary = "Atualiza um usuário", responses = {
             @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso",
                     content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),

@@ -15,10 +15,9 @@ public class MovimentacaoAssembler
     @Override
     public EntityModel<MovimentacaoListagemDTO> toModel(MovimentacaoListagemDTO dto) {
         return EntityModel.of(dto,
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorRecurso(dto.recursoId())).withRel("movimentacoes-recurso"),
-                linkTo(methodOn(MovimentacaoController.class)
-                        .listarPorUsuario(dto.usuarioId())).withRel("movimentacoes-usuario")
+                linkTo(methodOn(MovimentacaoController.class).listarPorRecurso(dto.recursoId())).withRel("movimentacoes-recurso"),
+                linkTo(methodOn(MovimentacaoController.class).listarPorUsuario(dto.usuarioId())).withRel("movimentacoes-usuario"),
+                linkTo(methodOn(MovimentacaoController.class).listarPorSetor(dto.setorId())).withRel("movimentacoes-setor")
         );
     }
 }
