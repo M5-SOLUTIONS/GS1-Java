@@ -2,38 +2,44 @@ package br.com.m5_storage.service;
 
 import br.com.m5_storage.dto.alerta.AlertaListagemDTO;
 import br.com.m5_storage.entity.alerta.Alerta;
+import br.com.m5_storage.entity.setor.Setor;
+import br.com.m5_storage.entity.usuario.Operator;
+import br.com.m5_storage.entity.usuario.Usuario;
 import br.com.m5_storage.exception.IdNaoEncontradoException;
+import br.com.m5_storage.exception.OperadorNecessarioException;
 import br.com.m5_storage.repository.AlertaRepository;
+import br.com.m5_storage.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import br.com.m5_storage.entity.setor.Setor;
 import java.util.List;
 
 @Service
 public class AlertaService {
 
     private final AlertaRepository alertaRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public AlertaService(AlertaRepository alertaRepository) {
+    public AlertaService(AlertaRepository alertaRepository,
+                         UsuarioRepository usuarioRepository) {
         this.alertaRepository = alertaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    // Regra 14: dashboard — todos os alertas ativos
+    // ── leitura: qualquer usuário ────────────────────────────
+
     @Transactional(readOnly = true)
     public List<AlertaListagemDTO> readAlertasAtivos() {
         return alertaRepository.findByResolvidoFalseOrderByDataAlertaDesc()
                 .stream().map(this::toDTO).toList();
     }
 
-    // Alertas por recurso
     @Transactional(readOnly = true)
     public List<AlertaListagemDTO> readAlertasByRecurso(Long recursoId) {
         return alertaRepository.findByRecursoIdAndResolvidoFalse(recursoId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // Regra 6/20: alertas por setor
     @Transactional(readOnly = true)
     public List<AlertaListagemDTO> readAlertasBySetor(Long setorId) {
         return alertaRepository
@@ -41,7 +47,6 @@ public class AlertaService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Regra 6: alertas por base
     @Transactional(readOnly = true)
     public List<AlertaListagemDTO> readAlertasByBase(Long baseId) {
         return alertaRepository
@@ -49,18 +54,38 @@ public class AlertaService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Regra 8: resolver alerta manualmente
+    // ── escrita: apenas Operator ─────────────────────────────
+
+    /**
+     * Regra 2/9: apenas Operator pode resolver alertas manualmente.
+     */
     @Transactional
-    public AlertaListagemDTO resolverAlerta(Long id) {
+    public AlertaListagemDTO resolverAlerta(Long id, Long usuarioId) {
+        exigirOperator(usuarioId);
+
         Alerta alerta = alertaRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Alerta não encontrado com id: " + id
                 ));
+
         alerta.setResolvido(true);
         return toDTO(alertaRepository.save(alerta));
     }
 
     // ── helpers ──────────────────────────────────────────────
+
+    private void exigirOperator(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IdNaoEncontradoException(
+                        "Usuário não encontrado com id: " + usuarioId
+                ));
+
+        if (!(usuario instanceof Operator)) {
+            throw new OperadorNecessarioException(
+                    "Apenas Operators podem resolver alertas."
+            );
+        }
+    }
 
     private AlertaListagemDTO toDTO(Alerta a) {
         Setor setor = a.getRecurso().getSetor();

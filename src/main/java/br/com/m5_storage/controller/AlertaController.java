@@ -1,7 +1,7 @@
 package br.com.m5_storage.controller;
 
-import br.com.m5_storage.dto.alerta.AlertaListagemDTO;
 import br.com.m5_storage.entity.alerta.AlertaAssembler;
+import br.com.m5_storage.dto.alerta.AlertaListagemDTO;
 import br.com.m5_storage.service.AlertaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,6 +29,8 @@ public class AlertaController {
         this.alertaService = alertaService;
         this.assembler = assembler;
     }
+
+    // ── leitura: qualquer usuário ────────────────────────────
 
     @Operation(summary = "Lista todos os alertas ativos (dashboard)", responses = {
             @ApiResponse(responseCode = "200", description = "Alertas ativos retornados com sucesso",
@@ -92,13 +94,19 @@ public class AlertaController {
                 linkTo(methodOn(AlertaController.class).listarAtivos()).withRel("todos-ativos")));
     }
 
-    @Operation(summary = "Resolve um alerta manualmente", responses = {
+    // ── escrita: apenas Operator ─────────────────────────────
+
+    @Operation(summary = "Resolve um alerta manualmente — apenas Operator", responses = {
             @ApiResponse(responseCode = "200", description = "Alerta resolvido com sucesso",
                     content = @Content(schema = @Schema(implementation = AlertaListagemDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Alerta não encontrado")
+            @ApiResponse(responseCode = "403", description = "Usuário não é Operator"),
+            @ApiResponse(responseCode = "404", description = "Alerta ou usuário não encontrado")
     })
     @PatchMapping("/{id}/resolver")
-    public ResponseEntity<EntityModel<AlertaListagemDTO>> resolverAlerta(@PathVariable Long id) {
-        return ResponseEntity.ok(assembler.toModel(alertaService.resolverAlerta(id)));
+    public ResponseEntity<EntityModel<AlertaListagemDTO>> resolverAlerta(
+            @PathVariable Long id,
+            @RequestParam Long usuarioId) {
+
+        return ResponseEntity.ok(assembler.toModel(alertaService.resolverAlerta(id, usuarioId)));
     }
 }

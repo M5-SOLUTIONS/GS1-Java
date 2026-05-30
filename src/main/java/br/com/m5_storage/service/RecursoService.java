@@ -7,11 +7,15 @@ import br.com.m5_storage.entity.alerta.Alerta;
 import br.com.m5_storage.entity.recurso.Recurso;
 import br.com.m5_storage.entity.recurso.StatusRecurso;
 import br.com.m5_storage.entity.setor.Setor;
+import br.com.m5_storage.entity.usuario.Operator;
+import br.com.m5_storage.entity.usuario.Usuario;
 import br.com.m5_storage.exception.IdNaoEncontradoException;
+import br.com.m5_storage.exception.OperadorNecessarioException;
 import br.com.m5_storage.repository.AlertaRepository;
 import br.com.m5_storage.repository.MovimentacaoRepository;
 import br.com.m5_storage.repository.RecursoRepository;
 import br.com.m5_storage.repository.SetorRepository;
+import br.com.m5_storage.repository.UsuarioRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +30,26 @@ public class RecursoService {
     private final MovimentacaoRepository movimentacaoRepository;
     private final SetorRepository setorRepository;
     private final AlertaRepository alertaRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public RecursoService(RecursoRepository recursoRepository,
                           MovimentacaoRepository movimentacaoRepository,
                           SetorRepository setorRepository,
-                          AlertaRepository alertaRepository) {
+                          AlertaRepository alertaRepository,
+                          UsuarioRepository usuarioRepository) {
         this.recursoRepository = recursoRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.setorRepository = setorRepository;
         this.alertaRepository = alertaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
+    // ── operações de escrita: apenas Operator ────────────────
+
     @Transactional
-    public RecursoListagemDTO createRecurso(RecursoCadastroDTO dto) {
+    public RecursoListagemDTO createRecurso(RecursoCadastroDTO dto, Long usuarioId) {
+        exigirOperator(usuarioId);   // Regra 2
+
         Setor setor = setorRepository.findById(dto.setorId())
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Setor não encontrado com id: " + dto.setorId()
@@ -58,6 +69,44 @@ public class RecursoService {
 
         return toDTO(recursoRepository.save(recurso));
     }
+
+    @Transactional
+    public RecursoListagemDTO updateRecurso(Long id, RecursoAtualizarDTO dto, Long usuarioId) {
+        exigirOperator(usuarioId);   // Regra 2
+
+        Recurso recurso = findOrThrow(id);
+
+        recurso.setNome(dto.nome());
+        recurso.setCategoria(dto.categoria());
+        recurso.setQuantidade(dto.quantidade());
+        recurso.setMinimo(dto.minimo());
+        recurso.setCapacidadeMaxima(dto.capacidadeMaxima());
+        recurso.setCritico(dto.critico() != null && dto.critico());
+        recurso.setStatus(calcularStatus(dto.quantidade(), dto.minimo()));
+        recurso.setUltimaAtualizacao(LocalDateTime.now());
+
+        recursoRepository.save(recurso);
+        sincronizarAlertas(recurso);
+
+        return toDTO(recurso);
+    }
+
+    @Transactional
+    public void deleteRecurso(Long id, Long usuarioId) {
+        exigirOperator(usuarioId);   // Regra 2
+        findOrThrow(id);
+
+        // Regra 22: impede deleção com movimentações vinculadas
+        if (movimentacaoRepository.existsByRecursoId(id)) {
+            throw new DataIntegrityViolationException(
+                    "Não é possível remover o recurso pois existem movimentações vinculadas."
+            );
+        }
+
+        recursoRepository.deleteById(id);
+    }
+
+    // ── operações de leitura: qualquer usuário ───────────────
 
     @Transactional(readOnly = true)
     public List<RecursoListagemDTO> readAllRecursos() {
@@ -84,39 +133,7 @@ public class RecursoService {
         return recursoRepository.findBySetor_BaseId(baseId).stream().map(this::toDTO).toList();
     }
 
-    @Transactional
-    public RecursoListagemDTO updateRecurso(Long id, RecursoAtualizarDTO dto) {
-        Recurso recurso = findOrThrow(id);
-
-        recurso.setNome(dto.nome());
-        recurso.setCategoria(dto.categoria());
-        recurso.setQuantidade(dto.quantidade());
-        recurso.setMinimo(dto.minimo());
-        recurso.setCapacidadeMaxima(dto.capacidadeMaxima());
-        recurso.setCritico(dto.critico() != null && dto.critico());
-        recurso.setStatus(calcularStatus(dto.quantidade(), dto.minimo()));
-        recurso.setUltimaAtualizacao(LocalDateTime.now());
-
-        recursoRepository.save(recurso);
-        sincronizarAlertas(recurso);
-
-        return toDTO(recurso);
-    }
-
-    @Transactional
-    public void deleteRecurso(Long id) {
-        findOrThrow(id);
-
-        if (movimentacaoRepository.existsByRecursoId(id)) {
-            throw new DataIntegrityViolationException(
-                    "Não é possível remover o recurso pois existem movimentações vinculadas."
-            );
-        }
-
-        recursoRepository.deleteById(id);
-    }
-
-    // ── helpers ──────────────────────────────────────────────
+    // ── helpers públicos usados por MovimentacaoService ──────
 
     public Recurso findOrThrow(Long id) {
         return recursoRepository.findById(id)
@@ -126,7 +143,7 @@ public class RecursoService {
     }
 
     /**
-     * Regra 4:
+     * Regra 5:
      * quantidade > minimo  → OK
      * quantidade == minimo → ATENCAO
      * quantidade < minimo  → CRITICO
@@ -138,27 +155,23 @@ public class RecursoService {
     }
 
     /**
-     * Regras 5/7/8: sincroniza alertas após mudança de status.
-     *
-     * Correção: quando sai de CRITICO para ATENCAO, atualiza o nível
-     * do alerta existente em vez de deixá-lo desatualizado.
-     * Só resolve definitivamente quando chega em OK (quantidade > minimo).
+     * Regras 6/8/9: sincroniza alertas após mudança de status.
+     * - CRITICO/ATENCAO → cria novo alerta ou atualiza o nível do existente
+     * - OK              → resolve todos os alertas ativos
      */
     public void sincronizarAlertas(Recurso recurso) {
-        // Regra 7: só recursos críticos geram alertas
-        if (!recurso.getCritico()) return;
+        if (!recurso.getCritico()) return;  // Regra 8
 
         StatusRecurso status = recurso.getStatus();
 
         if (status == StatusRecurso.CRITICO || status == StatusRecurso.ATENCAO) {
-
             List<Alerta> alertasAtivos = alertaRepository
                     .findByRecursoIdAndResolvidoFalse(recurso.getId());
 
             if (alertasAtivos.isEmpty()) {
-                // Regra 5: gera novo alerta
                 alertaRepository.save(Alerta.builder()
                         .recurso(recurso)
+                        .setor(recurso.getSetor())
                         .mensagem("Recurso " + recurso.getNome()
                                 + " atingiu nível " + status.name()
                                 + ". Quantidade: " + recurso.getQuantidade())
@@ -167,8 +180,6 @@ public class RecursoService {
                         .dataAlerta(LocalDateTime.now())
                         .build());
             } else {
-                // Correção erro 3: atualiza o nível do alerta existente
-                // (ex: CRITICO → ATENCAO após reabastecimento parcial)
                 alertasAtivos.forEach(a -> {
                     a.setNivel(status.name());
                     a.setMensagem("Recurso " + recurso.getNome()
@@ -179,7 +190,6 @@ public class RecursoService {
             }
 
         } else if (status == StatusRecurso.OK) {
-            // Regra 8: resolve todos os alertas ativos ao voltar ao nível seguro
             alertaRepository.findByRecursoIdAndResolvidoFalse(recurso.getId())
                     .forEach(a -> {
                         a.setResolvido(true);
@@ -203,5 +213,22 @@ public class RecursoService {
                 r.getSetor().getInfo().getNome(),
                 r.getSetor().getBase().getId()
         );
+    }
+
+    // ── verificação de permissão ─────────────────────────────
+
+    /**
+     * Regra 2: busca o usuário e lança OperadorNecessarioException
+     * se não for uma instância de Operator.
+     */
+    private void exigirOperator(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IdNaoEncontradoException(
+                        "Usuário não encontrado com id: " + usuarioId
+                ));
+
+        if (!(usuario instanceof Operator)) {
+            throw new OperadorNecessarioException();
+        }
     }
 }

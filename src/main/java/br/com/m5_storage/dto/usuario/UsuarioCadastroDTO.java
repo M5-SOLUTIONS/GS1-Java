@@ -5,21 +5,25 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+// Regra 2/16: tipo_usuario obrigatório (VIEWER | OPERATOR)
 public record UsuarioCadastroDTO(
 
         @NotBlank(message = "Nome é obrigatório")
-        @Size(max = 100, message = "Nome deve ter no máximo 100 caracteres")
+        @Size(max = 100)
         String nome,
 
         @NotBlank(message = "Email é obrigatório")
         @Email(message = "Email inválido")
-        @Size(max = 150, message = "Email deve ter no máximo 150 caracteres")
+        @Size(max = 150)
         String email,
 
         @NotBlank(message = "Senha é obrigatória")
-        @Size(max = 100, message = "Senha deve ter no máximo 100 caracteres")
+        @Size(max = 100)
         String senha,
 
         @NotNull(message = "Base é obrigatória")
-        Long baseId
+        Long baseId,
+
+        @NotNull(message = "Tipo de usuário é obrigatório")
+        TipoUsuario tipoUsuario
 ) {}

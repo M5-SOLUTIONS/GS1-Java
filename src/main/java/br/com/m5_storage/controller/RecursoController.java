@@ -1,9 +1,9 @@
 package br.com.m5_storage.controller;
 
+import br.com.m5_storage.entity.recurso.RecursoAssembler;
 import br.com.m5_storage.dto.recurso.RecursoAtualizarDTO;
 import br.com.m5_storage.dto.recurso.RecursoCadastroDTO;
 import br.com.m5_storage.dto.recurso.RecursoListagemDTO;
-import br.com.m5_storage.entity.recurso.RecursoAssembler;
 import br.com.m5_storage.entity.recurso.StatusRecurso;
 import br.com.m5_storage.service.RecursoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,17 +36,21 @@ public class RecursoController {
         this.assembler = assembler;
     }
 
-    @Operation(summary = "Cadastra um recurso", responses = {
+    // ── escrita: apenas Operator (usuarioId obrigatório) ─────
+
+    @Operation(summary = "Cadastra um recurso (apenas Operator)", responses = {
             @ApiResponse(responseCode = "201", description = "Recurso cadastrado com sucesso",
                     content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "404", description = "Setor não encontrado")
+            @ApiResponse(responseCode = "403", description = "Usuário não é Operator"),
+            @ApiResponse(responseCode = "404", description = "Setor ou usuário não encontrado")
     })
     @PostMapping
     public ResponseEntity<EntityModel<RecursoListagemDTO>> criar(
-            @RequestBody @Valid RecursoCadastroDTO dto) {
+            @RequestBody @Valid RecursoCadastroDTO dto,
+            @RequestParam Long usuarioId) {
 
-        RecursoListagemDTO criado = recursoService.createRecurso(dto);
+        RecursoListagemDTO criado = recursoService.createRecurso(dto, usuarioId);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest().path("/{id}")
@@ -54,6 +58,39 @@ public class RecursoController {
 
         return ResponseEntity.created(location).body(assembler.toModel(criado));
     }
+
+    @Operation(summary = "Atualiza um recurso (apenas Operator)", responses = {
+            @ApiResponse(responseCode = "200", description = "Recurso atualizado com sucesso",
+                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "403", description = "Usuário não é Operator"),
+            @ApiResponse(responseCode = "404", description = "Recurso ou usuário não encontrado")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<RecursoListagemDTO>> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid RecursoAtualizarDTO dto,
+            @RequestParam Long usuarioId) {
+
+        return ResponseEntity.ok(assembler.toModel(recursoService.updateRecurso(id, dto, usuarioId)));
+    }
+
+    @Operation(summary = "Remove um recurso (apenas Operator)", responses = {
+            @ApiResponse(responseCode = "204", description = "Recurso removido com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Usuário não é Operator"),
+            @ApiResponse(responseCode = "404", description = "Recurso ou usuário não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Recurso possui movimentações vinculadas")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(
+            @PathVariable Long id,
+            @RequestParam Long usuarioId) {
+
+        recursoService.deleteRecurso(id, usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ── leitura: qualquer usuário ────────────────────────────
 
     @Operation(summary = "Lista todos os recursos", responses = {
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
@@ -124,30 +161,5 @@ public class RecursoController {
         return ResponseEntity.ok(CollectionModel.of(lista,
                 linkTo(methodOn(RecursoController.class).listarPorStatus(status)).withSelfRel(),
                 linkTo(methodOn(RecursoController.class).listarTodos()).withRel("todos")));
-    }
-
-    @Operation(summary = "Atualiza um recurso", responses = {
-            @ApiResponse(responseCode = "200", description = "Recurso atualizado com sucesso",
-                    content = @Content(schema = @Schema(implementation = RecursoListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
-    })
-    @PutMapping("/{id}")
-    public ResponseEntity<EntityModel<RecursoListagemDTO>> atualizar(
-            @PathVariable Long id,
-            @RequestBody @Valid RecursoAtualizarDTO dto) {
-
-        return ResponseEntity.ok(assembler.toModel(recursoService.updateRecurso(id, dto)));
-    }
-
-    @Operation(summary = "Remove um recurso", responses = {
-            @ApiResponse(responseCode = "204", description = "Recurso removido com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Recurso possui movimentações vinculadas")
-    })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        recursoService.deleteRecurso(id);
-        return ResponseEntity.noContent().build();
     }
 }
