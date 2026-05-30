@@ -15,17 +15,22 @@ public class AlertaAssembler
     @Override
     public EntityModel<AlertaListagemDTO> toModel(AlertaListagemDTO dto) {
         return EntityModel.of(dto,
+                // GET / — lista todos ativos
                 linkTo(methodOn(AlertaController.class)
-                        .listarAtivos(dto.baseId()))
-                        .withRel("alertas-ativos"),
+                        .listarAtivos()).withRel("alertas-ativos"),
 
+                // GET /recurso/{recursoId}
                 linkTo(methodOn(AlertaController.class)
-                        .resolverAlerta(dto.id()))
-                        .withRel("resolver"),
+                        .listarPorRecurso(dto.recursoId())).withRel("alertas-recurso"),
 
+                // GET /setor/{setorId}
                 linkTo(methodOn(AlertaController.class)
-                        .listarPorRecurso(dto.baseId(), dto.recursoId()))
-                        .withRel("alertas-recurso")
+                        .listarPorSetor(dto.setorId())).withRel("alertas-setor")
+
+                // PATCH /{id}/resolver foi removido daqui:
+                // recebe @RequestParam usuarioId — não faz sentido gerar o link
+                // sem saber o usuário que vai resolver, e links HATEOAS não carregam
+                // parâmetros dinâmicos de autenticação.
         );
     }
 }

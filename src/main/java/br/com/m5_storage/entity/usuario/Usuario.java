@@ -6,6 +6,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "t_usuarios")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "tipo_usuario")
 @Getter
 @Setter
 @NoArgsConstructor

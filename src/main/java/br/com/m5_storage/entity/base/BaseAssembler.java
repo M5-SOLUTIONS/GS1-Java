@@ -16,7 +16,7 @@ public class BaseAssembler
     public EntityModel<BaseListagemDTO> toModel(BaseListagemDTO dto) {
         return EntityModel.of(dto,
                 linkTo(methodOn(BaseController.class).buscarPorId(dto.id())).withSelfRel(),
-                linkTo(methodOn(BaseController.class).listarTodos()).withRel("bases")
+                linkTo(methodOn(BaseController.class).listarTodas()).withRel("bases")
         );
     }
 }

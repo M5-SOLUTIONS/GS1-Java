@@ -1,10 +1,13 @@
 package br.com.m5_storage.service;
 
+import br.com.m5_storage.dto.usuario.TipoUsuario;
 import br.com.m5_storage.dto.usuario.UsuarioAtualizarDTO;
 import br.com.m5_storage.dto.usuario.UsuarioCadastroDTO;
 import br.com.m5_storage.dto.usuario.UsuarioListagemDTO;
 import br.com.m5_storage.entity.base.Base;
+import br.com.m5_storage.entity.usuario.Operator;
 import br.com.m5_storage.entity.usuario.Usuario;
+import br.com.m5_storage.entity.usuario.Viewer;
 import br.com.m5_storage.exception.IdNaoEncontradoException;
 import br.com.m5_storage.repository.BaseRepository;
 import br.com.m5_storage.repository.UsuarioRepository;
@@ -29,6 +32,7 @@ public class UsuarioService {
     @Transactional
     public UsuarioListagemDTO createUsuario(UsuarioCadastroDTO dto) {
 
+        // Regra 17: email único
         if (usuarioRepository.existsByEmail(dto.email())) {
             throw new DataIntegrityViolationException(
                     "Já existe um usuário com o email: " + dto.email()
@@ -40,21 +44,27 @@ public class UsuarioService {
                         "Base não encontrada com id: " + dto.baseId()
                 ));
 
-        Usuario usuario = Usuario.builder()
-                .nome(dto.nome())
-                .email(dto.email())
-                .senha(dto.senha())
-                .base(base)
-                .build();
+        // Regra 2: instancia a subclasse correta conforme tipo_usuario
+        Usuario usuario = criarInstancia(dto.tipoUsuario());
+        usuario.setNome(dto.nome());
+        usuario.setEmail(dto.email());
+        usuario.setSenha(dto.senha());
+        usuario.setBase(base);
 
-        Usuario salvo = usuarioRepository.save(usuario);
-
-        return toDTO(salvo);
+        return toDTO(usuarioRepository.save(usuario));
     }
 
     @Transactional(readOnly = true)
     public List<UsuarioListagemDTO> readAllUsuarios() {
         return usuarioRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioListagemDTO> readUsuariosByBase(Long baseId) {
+        return usuarioRepository.findByBaseId(baseId)
                 .stream()
                 .map(this::toDTO)
                 .toList();
@@ -67,26 +77,19 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioListagemDTO updateUsuario(Long id, UsuarioAtualizarDTO dto) {
-
         Usuario usuario = findOrThrow(id);
 
+        // Regra 17: valida email único apenas se foi alterado
         if (!usuario.getEmail().equals(dto.email())
                 && usuarioRepository.existsByEmail(dto.email())) {
-
             throw new DataIntegrityViolationException(
                     "Já existe um usuário com o email: " + dto.email()
             );
         }
 
-        Base base = baseRepository.findById(dto.baseId())
-                .orElseThrow(() -> new IdNaoEncontradoException(
-                        "Base não encontrada com id: " + dto.baseId()
-                ));
-
         usuario.setNome(dto.nome());
         usuario.setEmail(dto.email());
         usuario.setSenha(dto.senha());
-        usuario.setBase(base);
 
         return toDTO(usuarioRepository.save(usuario));
     }
@@ -96,11 +99,36 @@ public class UsuarioService {
         usuarioRepository.delete(findOrThrow(id));
     }
 
+    // ── helpers ──────────────────────────────────────────────
+
     private Usuario findOrThrow(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Usuário não encontrado com id: " + id
                 ));
+    }
+
+    /**
+     * Regra 2: cria a subclasse correta para o SINGLE_TABLE discriminator.
+     * Operator → @DiscriminatorValue("OPERATOR")
+     * Viewer   → @DiscriminatorValue("VIEWER")
+     */
+    private Usuario criarInstancia(TipoUsuario tipo) {
+        return switch (tipo) {
+            case OPERATOR -> new Operator();
+            case VIEWER   -> new Viewer();
+        };
+    }
+
+    /**
+     * Determina o TipoUsuario a partir da instância JPA
+     * (instanceof reflete o discriminator lido do banco).
+     */
+    private TipoUsuario resolverTipo(Usuario u) {
+        if (u instanceof Operator) return TipoUsuario.OPERATOR;
+        if (u instanceof Viewer)   return TipoUsuario.VIEWER;
+        // fallback defensivo — nunca deve ocorrer com a hierarquia fechada
+        throw new IllegalStateException("Tipo de usuário desconhecido: " + u.getClass().getSimpleName());
     }
 
     private UsuarioListagemDTO toDTO(Usuario u) {
@@ -109,7 +137,7 @@ public class UsuarioService {
                 u.getNome(),
                 u.getEmail(),
                 u.getBase().getId(),
-                u.getBase().getNome()
+                resolverTipo(u)
         );
     }
 }

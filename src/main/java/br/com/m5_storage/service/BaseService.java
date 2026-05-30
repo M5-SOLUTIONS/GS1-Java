@@ -22,14 +22,12 @@ public class BaseService {
 
     @Transactional
     public BaseListagemDTO createBase(BaseCadastroDTO dto) {
-
         Base base = Base.builder()
                 .nome(dto.nome())
                 .build();
 
-        Base salva = baseRepository.save(base);
-
-        return toDTO(salva);
+        Base salvo = baseRepository.save(base);
+        return toDTO(salvo);
     }
 
     @Transactional(readOnly = true)
@@ -47,7 +45,6 @@ public class BaseService {
 
     @Transactional
     public BaseListagemDTO updateBase(Long id, BaseAtualizarDTO dto) {
-
         Base base = findOrThrow(id);
 
         base.setNome(dto.nome());
@@ -60,6 +57,8 @@ public class BaseService {
         baseRepository.delete(findOrThrow(id));
     }
 
+    // ───────────────────────── helpers
+
     private Base findOrThrow(Long id) {
         return baseRepository.findById(id)
                 .orElseThrow(() -> new IdNaoEncontradoException(
@@ -67,10 +66,10 @@ public class BaseService {
                 ));
     }
 
-    private BaseListagemDTO toDTO(Base b) {
+    private BaseListagemDTO toDTO(Base base) {
         return new BaseListagemDTO(
-                b.getId(),
-                b.getNome()
+                base.getId(),
+                base.getNome()
         );
     }
 }

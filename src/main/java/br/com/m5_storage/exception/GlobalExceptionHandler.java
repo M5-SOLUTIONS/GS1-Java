@@ -6,8 +6,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,23 +20,29 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // ── 404 Not Found ─────────────────────────────────────────
+
     @ExceptionHandler(IdNaoEncontradoException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(
             IdNaoEncontradoException ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                "Recurso não encontrado",
-                ex.getMessage(),
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(error);
+        return build(HttpStatus.NOT_FOUND, "Recurso não encontrado",
+                ex.getMessage(), request);
     }
+
+    // ── 403 Forbidden — permissão insuficiente ─────────────────
+
+    @ExceptionHandler(OperadorNecessarioException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(
+            OperadorNecessarioException ex,
+            HttpServletRequest request) {
+
+        return build(HttpStatus.FORBIDDEN, "Acesso negado",
+                ex.getMessage(), request);
+    }
+
+    // ── 400 Bad Request — validação de campos ──────────────────
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponse> handleValidation(
@@ -48,219 +54,135 @@ public class GlobalExceptionHandler {
         ex.getBindingResult()
                 .getAllErrors()
                 .forEach(error -> {
-
-                    String fieldName =
-                            ((FieldError) error).getField();
-
-                    String message =
-                            error.getDefaultMessage();
-
-                    errors.put(fieldName, message);
+                    String field = ((FieldError) error).getField();
+                    String message = error.getDefaultMessage();
+                    errors.put(field, message);
                 });
 
-        ValidationErrorResponse response =
-                new ValidationErrorResponse(
-                        HttpStatus.BAD_REQUEST.value(),
-                        "Erro de validação",
-                        request.getRequestURI(),
-                        LocalDateTime.now(),
-                        errors
-                );
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(response);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrity(
-            DataIntegrityViolationException ex,
-            HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                "Erro de integridade no banco de dados",
-                "Já existe um registro com esses dados ou existe relacionamento inválido",
+        ValidationErrorResponse response = new ValidationErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Erro de validação",
                 request.getRequestURI(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                errors
         );
 
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+
+    // ── 400 Bad Request — regras de negócio ───────────────────
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        return build(HttpStatus.BAD_REQUEST, "Operação inválida",
+                ex.getMessage(), request);
+    }
+
+    // ── 400 Bad Request — constraint violation ─────────────────
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(
             ConstraintViolationException ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Violação de restrição",
-                ex.getMessage(),
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+        return build(HttpStatus.BAD_REQUEST, "Violação de restrição",
+                ex.getMessage(), request);
     }
+
+    // ── 409 Conflict — integridade do banco ───────────────────
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        return build(HttpStatus.CONFLICT,
+                "Erro de integridade no banco de dados",
+                "Já existe um registro com esses dados ou existe relacionamento inválido.",
+                request);
+    }
+
+    // ── 415 Unsupported Media Type ────────────────────────────
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMediaType(
             HttpMediaTypeNotSupportedException ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
                 "Tipo de conteúdo não suportado",
                 "Utilize Content-Type: application/json",
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                .body(error);
+                request);
     }
+
+    // ── 405 Method Not Allowed ────────────────────────────────
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
             HttpRequestMethodNotSupportedException ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.METHOD_NOT_ALLOWED.value(),
+        return build(HttpStatus.METHOD_NOT_ALLOWED,
                 "Método HTTP não permitido",
-                ex.getMessage(),
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(error);
+                ex.getMessage(), request);
     }
+
+    // ── 400 Missing Path Variable ─────────────────────────────
 
     @ExceptionHandler(MissingPathVariableException.class)
     public ResponseEntity<ErrorResponse> handleMissingPath(
             MissingPathVariableException ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
+        return build(HttpStatus.BAD_REQUEST,
                 "Parâmetro da URL ausente",
-                ex.getMessage(),
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+                ex.getMessage(), request);
     }
 
+    // ── 500 Internal Server Error ─────────────────────────────
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
+    public ResponseEntity<ErrorResponse> handleGeneric(
             Exception ex,
             HttpServletRequest request) {
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Erro interno do servidor",
-                ex.getMessage(),
-                request.getRequestURI(),
-                LocalDateTime.now()
-        );
+                ex.getMessage(), request);
+    }
 
+    // ── builder helper ────────────────────────────────────────
+
+    private ResponseEntity<ErrorResponse> build(HttpStatus status,
+                                                String error,
+                                                String message,
+                                                HttpServletRequest request) {
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error);
+                .status(status)
+                .body(new ErrorResponse(
+                        status.value(), error, message,
+                        request.getRequestURI(), LocalDateTime.now()
+                ));
     }
 
-    public static class ErrorResponse {
+    // ── response bodies ───────────────────────────────────────
 
-        private int status;
-        private String error;
-        private String message;
-        private String path;
-        private LocalDateTime timestamp;
+    public record ErrorResponse(
+            int status,
+            String error,
+            String message,
+            String path,
+            LocalDateTime timestamp
+    ) {}
 
-        public ErrorResponse(int status,
-                             String error,
-                             String message,
-                             String path,
-                             LocalDateTime timestamp) {
-
-            this.status = status;
-            this.error = error;
-            this.message = message;
-            this.path = path;
-            this.timestamp = timestamp;
-        }
-
-        public int getStatus() {
-            return status;
-        }
-
-        public String getError() {
-            return error;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        public LocalDateTime getTimestamp() {
-            return timestamp;
-        }
-    }
-
-    public static class ValidationErrorResponse {
-
-        private int status;
-        private String error;
-        private String path;
-        private LocalDateTime timestamp;
-        private Map<String, String> fields;
-
-        public ValidationErrorResponse(int status,
-                                       String error,
-                                       String path,
-                                       LocalDateTime timestamp,
-                                       Map<String, String> fields) {
-
-            this.status = status;
-            this.error = error;
-            this.path = path;
-            this.timestamp = timestamp;
-            this.fields = fields;
-        }
-
-        public int getStatus() {
-            return status;
-        }
-
-        public String getError() {
-            return error;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        public LocalDateTime getTimestamp() {
-            return timestamp;
-        }
-
-        public Map<String, String> getFields() {
-            return fields;
-        }
-    }
+    public record ValidationErrorResponse(
+            int status,
+            String error,
+            String path,
+            LocalDateTime timestamp,
+            Map<String, String> fields
+    ) {}
 }

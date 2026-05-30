@@ -6,7 +6,6 @@ import br.com.m5_storage.dto.usuario.UsuarioListagemDTO;
 import br.com.m5_storage.entity.usuario.UsuarioAssembler;
 import br.com.m5_storage.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,9 +22,9 @@ import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
-@Tag(name = "Usuários")
 @RestController
 @RequestMapping("/usuarios")
+@Tag(name = "Usuários", description = "Gerenciamento de usuários do sistema")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -39,8 +38,8 @@ public class UsuarioController {
     @Operation(summary = "Cadastra um usuário", responses = {
             @ApiResponse(responseCode = "201", description = "Usuário cadastrado com sucesso",
                     content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao cadastrar usuário"),
-            @ApiResponse(responseCode = "404", description = "Base não encontrada")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "409", description = "Email já cadastrado")
     })
     @PostMapping
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> criar(
@@ -58,13 +57,11 @@ public class UsuarioController {
     }
 
     @Operation(summary = "Lista todos os usuários", responses = {
-            @ApiResponse(responseCode = "200", description = "Usuários encontrados",
-                    content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = UsuarioListagemDTO.class))))
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class)))
     })
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<UsuarioListagemDTO>>> listarTodos() {
-
         List<EntityModel<UsuarioListagemDTO>> lista = usuarioService.readAllUsuarios()
                 .stream()
                 .map(assembler::toModel)
@@ -76,44 +73,59 @@ public class UsuarioController {
         return ResponseEntity.ok(collection);
     }
 
-    @Operation(summary = "Busca usuário por id", responses = {
+    @Operation(summary = "Busca um usuário pelo ID", responses = {
             @ApiResponse(responseCode = "200", description = "Usuário encontrado",
                     content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(assembler.toModel(usuarioService.readUsuarioById(id)));
+    }
 
-        return ResponseEntity.ok(
-                assembler.toModel(usuarioService.readUsuarioById(id))
-        );
+    @Operation(summary = "Lista usuários por base", responses = {
+            @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso",
+                    content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class)))
+    })
+    @GetMapping("/base/{baseId}")
+    public ResponseEntity<CollectionModel<EntityModel<UsuarioListagemDTO>>> listarPorBase(
+            @PathVariable Long baseId) {
+
+        List<EntityModel<UsuarioListagemDTO>> lista = usuarioService.readUsuariosByBase(baseId)
+                .stream()
+                .map(assembler::toModel)
+                .toList();
+
+        CollectionModel<EntityModel<UsuarioListagemDTO>> collection =
+                CollectionModel.of(lista,
+                        linkTo(methodOn(UsuarioController.class).listarPorBase(baseId)).withSelfRel());
+
+        return ResponseEntity.ok(collection);
     }
 
     @Operation(summary = "Atualiza um usuário", responses = {
             @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso",
                     content = @Content(schema = @Schema(implementation = UsuarioListagemDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erro ao atualizar usuário"),
-            @ApiResponse(responseCode = "404", description = "Usuário ou base não encontrados")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Email já cadastrado")
     })
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioListagemDTO>> atualizar(
             @PathVariable Long id,
             @RequestBody @Valid UsuarioAtualizarDTO dto) {
 
-        return ResponseEntity.ok(
-                assembler.toModel(usuarioService.updateUsuario(id, dto))
-        );
+        return ResponseEntity.ok(assembler.toModel(usuarioService.updateUsuario(id, dto)));
     }
 
-    @Operation(summary = "Deleta um usuário", responses = {
-            @ApiResponse(responseCode = "204", description = "Usuário deletado com sucesso"),
+    @Operation(summary = "Remove um usuário", responses = {
+            @ApiResponse(responseCode = "204", description = "Usuário removido com sucesso"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-
         usuarioService.deleteUsuario(id);
-
         return ResponseEntity.noContent().build();
     }
+
 }

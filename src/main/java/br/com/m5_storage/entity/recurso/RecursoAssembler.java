@@ -15,9 +15,21 @@ public class RecursoAssembler
     @Override
     public EntityModel<RecursoListagemDTO> toModel(RecursoListagemDTO dto) {
         return EntityModel.of(dto,
-                linkTo(methodOn(RecursoController.class).buscarPorId(dto.id())).withSelfRel(),
-                linkTo(methodOn(RecursoController.class).listarTodos()).withRel("recursos"),
-                linkTo(methodOn(RecursoController.class).listarPorStatus(dto.status())).withRel("por-status")
+                // GET /{id} — sem usuarioId
+                linkTo(methodOn(RecursoController.class)
+                        .buscarPorId(dto.id())).withSelfRel(),
+
+                // GET / — sem usuarioId
+                linkTo(methodOn(RecursoController.class)
+                        .listarTodos()).withRel("recursos"),
+
+                // GET /setor/{setorId} — sem usuarioId
+                linkTo(methodOn(RecursoController.class)
+                        .listarPorSetor(dto.setorId())).withRel("recursos-do-setor"),
+
+                // GET /status/{status} — sem usuarioId
+                linkTo(methodOn(RecursoController.class)
+                        .listarPorStatus(dto.status())).withRel("por-status")
         );
     }
 }

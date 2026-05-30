@@ -1,12 +1,16 @@
 package br.com.m5_storage.entity.alerta;
 
-import br.com.m5_storage.entity.base.Base;
 import br.com.m5_storage.entity.recurso.Recurso;
+import br.com.m5_storage.entity.setor.Setor;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * Regra 7: alertas pertencem a recurso E setor.
+ * setor_id agora é coluna própria na tabela t_alertas.
+ */
 @Entity
 @Table(name = "t_alertas")
 @Getter
@@ -23,12 +27,13 @@ public class Alerta {
     private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "base_id", nullable = false)
-    private Base base;
-
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "recurso_id", nullable = false)
     private Recurso recurso;
+
+    // Regra 7: setor explícito na tabela (fk_alerta_setor)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "setor_id", nullable = false)
+    private Setor setor;
 
     @Column(name = "mensagem", length = 255)
     private String mensagem;
