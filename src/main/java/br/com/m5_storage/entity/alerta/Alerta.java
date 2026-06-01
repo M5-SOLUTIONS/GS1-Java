@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * setor_id agora é coluna própria na tabela t_alertas.
  */
 @Entity
-@Table(name = "t_alertas")
+@Table(name = "st_t_alertas")
 @Getter
 @Setter
 @NoArgsConstructor
