@@ -56,9 +56,6 @@ public class AlertaService {
 
     // ── escrita: apenas Operator ─────────────────────────────
 
-    /**
-     * Regra 2/9: apenas Operator pode resolver alertas manualmente.
-     */
     @Transactional
     public AlertaListagemDTO resolverAlerta(Long id, Long usuarioId) {
         exigirOperator(usuarioId);
@@ -67,6 +64,13 @@ public class AlertaService {
                 .orElseThrow(() -> new IdNaoEncontradoException(
                         "Alerta não encontrado com id: " + id
                 ));
+
+        // Correção 6: impede resolver um alerta que já está resolvido
+        if (alerta.getResolvido()) {
+            throw new IllegalArgumentException(
+                    "O alerta com id " + id + " já foi resolvido."
+            );
+        }
 
         alerta.setResolvido(true);
         return toDTO(alertaRepository.save(alerta));

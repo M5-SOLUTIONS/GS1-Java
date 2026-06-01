@@ -48,7 +48,23 @@ public class RecursoService {
 
     @Transactional
     public RecursoListagemDTO createRecurso(RecursoCadastroDTO dto, Long usuarioId) {
-        exigirOperator(usuarioId);   // Regra 2
+        exigirOperator(usuarioId);
+
+        // Correção 4: quantidade não pode ser maior que capacidadeMaxima
+        if (dto.quantidade() > dto.capacidadeMaxima()) {
+            throw new IllegalArgumentException(
+                    "Quantidade (" + dto.quantidade() + ") não pode ser maior "
+                            + "que a capacidade máxima (" + dto.capacidadeMaxima() + ")."
+            );
+        }
+
+        // Correção 5: mínimo deve ser menor que capacidadeMaxima
+        if (dto.minimo() >= dto.capacidadeMaxima()) {
+            throw new IllegalArgumentException(
+                    "Mínimo (" + dto.minimo() + ") deve ser menor "
+                            + "que a capacidade máxima (" + dto.capacidadeMaxima() + ")."
+            );
+        }
 
         Setor setor = setorRepository.findById(dto.setorId())
                 .orElseThrow(() -> new IdNaoEncontradoException(
@@ -72,7 +88,23 @@ public class RecursoService {
 
     @Transactional
     public RecursoListagemDTO updateRecurso(Long id, RecursoAtualizarDTO dto, Long usuarioId) {
-        exigirOperator(usuarioId);   // Regra 2
+        exigirOperator(usuarioId);
+
+        // Correção 4: quantidade não pode ser maior que capacidadeMaxima
+        if (dto.quantidade() > dto.capacidadeMaxima()) {
+            throw new IllegalArgumentException(
+                    "Quantidade (" + dto.quantidade() + ") não pode ser maior "
+                            + "que a capacidade máxima (" + dto.capacidadeMaxima() + ")."
+            );
+        }
+
+        // Correção 5: mínimo deve ser menor que capacidadeMaxima
+        if (dto.minimo() >= dto.capacidadeMaxima()) {
+            throw new IllegalArgumentException(
+                    "Mínimo (" + dto.minimo() + ") deve ser menor "
+                            + "que a capacidade máxima (" + dto.capacidadeMaxima() + ")."
+            );
+        }
 
         Recurso recurso = findOrThrow(id);
 
@@ -93,10 +125,9 @@ public class RecursoService {
 
     @Transactional
     public void deleteRecurso(Long id, Long usuarioId) {
-        exigirOperator(usuarioId);   // Regra 2
+        exigirOperator(usuarioId);
         findOrThrow(id);
 
-        // Regra 22: impede deleção com movimentações vinculadas
         if (movimentacaoRepository.existsByRecursoId(id)) {
             throw new DataIntegrityViolationException(
                     "Não é possível remover o recurso pois existem movimentações vinculadas."
@@ -143,24 +174,26 @@ public class RecursoService {
     }
 
     /**
-     * Regra 5:
-     * quantidade > minimo  → OK
-     * quantidade == minimo → ATENCAO
-     * quantidade < minimo  → CRITICO
+     * Regra 5 — Correção 3: usa tolerância de ponto flutuante
+     * em vez de Double.equals() para evitar bugs com operações decimais.
+     *
+     * quantidade > minimo + tolerância → OK
+     * |quantidade - minimo| <= tolerância → ATENCAO
+     * quantidade < minimo - tolerância  → CRITICO
      */
     public StatusRecurso calcularStatus(Double quantidade, Double minimo) {
-        if (quantidade > minimo)       return StatusRecurso.OK;
-        if (quantidade.equals(minimo)) return StatusRecurso.ATENCAO;
+        double tolerancia = 0.0001;
+
+        if (quantidade > minimo + tolerancia)              return StatusRecurso.OK;
+        if (Math.abs(quantidade - minimo) <= tolerancia)   return StatusRecurso.ATENCAO;
         return StatusRecurso.CRITICO;
     }
 
     /**
      * Regras 6/8/9: sincroniza alertas após mudança de status.
-     * - CRITICO/ATENCAO → cria novo alerta ou atualiza o nível do existente
-     * - OK              → resolve todos os alertas ativos
      */
     public void sincronizarAlertas(Recurso recurso) {
-        if (!recurso.getCritico()) return;  // Regra 8
+        if (!recurso.getCritico()) return;
 
         StatusRecurso status = recurso.getStatus();
 
@@ -217,10 +250,6 @@ public class RecursoService {
 
     // ── verificação de permissão ─────────────────────────────
 
-    /**
-     * Regra 2: busca o usuário e lança OperadorNecessarioException
-     * se não for uma instância de Operator.
-     */
     private void exigirOperator(Long usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IdNaoEncontradoException(
