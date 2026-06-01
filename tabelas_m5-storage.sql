@@ -7,7 +7,7 @@ CREATE TABLE t_bases (
 );
 
 -- =========================================
--- T_SETOR (NOVO)
+-- T_SETOR
 -- =========================================
 CREATE TABLE t_setores (
                            id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -17,16 +17,13 @@ CREATE TABLE t_setores (
                            nome VARCHAR2(100) NOT NULL,
                            descricao VARCHAR2(255),
 
-    -- Embeddable (exemplo de uso lógico)
-    -- aqui você NÃO cria tabela separada, mas representa estrutura reutilizável no Java
-
                            CONSTRAINT fk_setor_base
                                FOREIGN KEY (base_id)
                                    REFERENCES t_bases(id)
 );
 
 -- =========================================
--- T_USUARIOS
+-- T_USUARIOS (SINGLE TABLE INHERITANCE)
 -- =========================================
 CREATE TABLE t_usuarios (
                             id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -34,12 +31,18 @@ CREATE TABLE t_usuarios (
                             base_id NUMBER NOT NULL,
 
                             nome VARCHAR2(100) NOT NULL,
-                            email VARCHAR2(150) UNIQUE NOT NULL,
+                            email VARCHAR2(150) NOT NULL UNIQUE,
                             senha VARCHAR2(100) NOT NULL,
+
+    -- HERANÇA
+                            tipo_usuario VARCHAR2(30) NOT NULL,
 
                             CONSTRAINT fk_usuario_base
                                 FOREIGN KEY (base_id)
-                                    REFERENCES t_bases(id)
+                                    REFERENCES t_bases(id),
+
+                            CONSTRAINT ck_tipo_usuario
+                                CHECK (tipo_usuario IN ('VIEWER', 'OPERATOR'))
 );
 
 -- =========================================
@@ -74,6 +77,7 @@ CREATE TABLE t_movimentacoes (
 
                                  usuario_id NUMBER NOT NULL,
                                  recurso_id NUMBER NOT NULL,
+                                 setor_id NUMBER NOT NULL,
 
                                  tipo_movimentacao VARCHAR2(30) NOT NULL,
                                  quantidade NUMBER NOT NULL,
@@ -86,7 +90,11 @@ CREATE TABLE t_movimentacoes (
 
                                  CONSTRAINT fk_mov_recurso
                                      FOREIGN KEY (recurso_id)
-                                         REFERENCES t_recursos(id)
+                                         REFERENCES t_recursos(id),
+
+                                 CONSTRAINT fk_mov_setor
+                                     FOREIGN KEY (setor_id)
+                                         REFERENCES t_setores(id)
 );
 
 -- =========================================
@@ -96,6 +104,7 @@ CREATE TABLE t_alertas (
                            id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
                            recurso_id NUMBER NOT NULL,
+                           setor_id NUMBER NOT NULL,
 
                            mensagem VARCHAR2(255),
                            nivel VARCHAR2(30),
@@ -104,5 +113,9 @@ CREATE TABLE t_alertas (
 
                            CONSTRAINT fk_alerta_recurso
                                FOREIGN KEY (recurso_id)
-                                   REFERENCES t_recursos(id)
+                                   REFERENCES t_recursos(id),
+
+                           CONSTRAINT fk_alerta_setor
+                               FOREIGN KEY (setor_id)
+                                   REFERENCES t_setores(id)
 );

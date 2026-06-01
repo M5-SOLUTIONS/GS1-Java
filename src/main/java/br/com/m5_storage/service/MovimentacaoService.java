@@ -7,8 +7,10 @@ import br.com.m5_storage.entity.movimentacao.TipoMovimentacao;
 import br.com.m5_storage.entity.recurso.Recurso;
 import br.com.m5_storage.entity.recurso.StatusRecurso;
 import br.com.m5_storage.entity.setor.Setor;
+import br.com.m5_storage.entity.usuario.Operator;
 import br.com.m5_storage.entity.usuario.Usuario;
 import br.com.m5_storage.exception.IdNaoEncontradoException;
+import br.com.m5_storage.exception.OperadorNecessarioException;
 import br.com.m5_storage.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,10 @@ public class MovimentacaoService {
         this.recursoService = recursoService;
     }
 
+    /**
+     * Regra 2: apenas Operator pode registrar movimentações.
+     * O usuarioId do DTO é o executor da operação — se não for Operator, rejeita.
+     */
     @Transactional
     public MovimentacaoListagemDTO registrarMovimentacao(MovimentacaoCadastroDTO dto) {
 
@@ -47,7 +53,14 @@ public class MovimentacaoService {
                         "Usuário não encontrado com id: " + dto.usuarioId()
                 ));
 
-        // Regra 10: setor é derivado do recurso — nunca do cliente
+        // Regra 2: somente Operator registra movimentações
+        if (!(usuario instanceof Operator)) {
+            throw new OperadorNecessarioException(
+                    "Apenas Operators podem registrar movimentações."
+            );
+        }
+
+        // Regra 11: setor derivado do recurso
         Setor setor = recurso.getSetor();
 
         if (dto.tipoMovimentacao() == TipoMovimentacao.CONSUMO) {
@@ -69,7 +82,8 @@ public class MovimentacaoService {
         return toDTO(movimentacaoRepository.save(movimentacao));
     }
 
-    // Regra 19: histórico permanente por recurso
+    // ── leitura: qualquer usuário ────────────────────────────
+
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByRecurso(Long recursoId) {
         return movimentacaoRepository
@@ -77,7 +91,6 @@ public class MovimentacaoService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Regra 11: histórico por usuário
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByUsuario(Long usuarioId) {
         return movimentacaoRepository
@@ -85,7 +98,6 @@ public class MovimentacaoService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Regra 10/20: histórico por setor
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesBySetor(Long setorId) {
         return movimentacaoRepository
@@ -93,7 +105,6 @@ public class MovimentacaoService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Filtro setor + tipo
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesBySetorAndTipo(Long setorId,
                                                                          TipoMovimentacao tipo) {
@@ -102,7 +113,6 @@ public class MovimentacaoService {
                 .stream().map(this::toDTO).toList();
     }
 
-    // Histórico por base
     @Transactional(readOnly = true)
     public List<MovimentacaoListagemDTO> readMovimentacoesByBase(Long baseId) {
         return movimentacaoRepository
@@ -113,12 +123,11 @@ public class MovimentacaoService {
     // ── lógica de estoque ────────────────────────────────────
 
     /**
-     * Regra 2/3: CONSUMO — reduz quantidade; nunca abaixo de zero.
+     * Regra 3: CONSUMO — reduz quantidade; nunca abaixo de zero (regra 3).
      */
     private void realizarConsumo(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() - quantidade;
 
-        // Regra 2: resultado não pode ser negativo
         if (novaQuantidade < 0) {
             throw new IllegalArgumentException(
                     "Estoque insuficiente. Disponível: " + recurso.getQuantidade()
@@ -131,12 +140,11 @@ public class MovimentacaoService {
     }
 
     /**
-     * Regra 3/8/18: REABASTECIMENTO — aumenta quantidade respeitando capacidade máxima.
+     * Regra 4/19: REABASTECIMENTO — aumenta quantidade respeitando capacidade máxima.
      */
     private void realizarReabastecimento(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() + quantidade;
 
-        // Regra 18: não ultrapassa capacidade máxima
         if (novaQuantidade > recurso.getCapacidadeMaxima()) {
             throw new IllegalArgumentException(
                     "Quantidade excede a capacidade máxima do recurso. "
@@ -150,9 +158,6 @@ public class MovimentacaoService {
         atualizarStatusEAlertas(recurso);
     }
 
-    /**
-     * Regras 4/5/7/8: recalcula status e sincroniza alertas após qualquer movimentação.
-     */
     private void atualizarStatusEAlertas(Recurso recurso) {
         StatusRecurso novoStatus = recursoService.calcularStatus(
                 recurso.getQuantidade(), recurso.getMinimo()
@@ -160,7 +165,6 @@ public class MovimentacaoService {
         recurso.setStatus(novoStatus);
         recurso.setUltimaAtualizacao(LocalDateTime.now());
         recursoRepository.save(recurso);
-
         recursoService.sincronizarAlertas(recurso);
     }
 
