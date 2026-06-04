@@ -65,7 +65,6 @@ public class AlertaService {
                         "Alerta não encontrado com id: " + id
                 ));
 
-        // Correção 6: impede resolver um alerta que já está resolvido
         if (alerta.getResolvido()) {
             throw new IllegalArgumentException(
                     "O alerta com id " + id + " já foi resolvido."

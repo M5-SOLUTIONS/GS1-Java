@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-// Regra 15/18: campos obrigatórios + capacidade máxima
 public record RecursoCadastroDTO(
 
         @NotNull(message = "Setor é obrigatório")

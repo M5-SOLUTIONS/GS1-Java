@@ -32,7 +32,6 @@ public class UsuarioService {
     @Transactional
     public UsuarioListagemDTO createUsuario(UsuarioCadastroDTO dto) {
 
-        // Regra 17: email único
         if (usuarioRepository.existsByEmail(dto.email())) {
             throw new DataIntegrityViolationException(
                     "Já existe um usuário com o email: " + dto.email()
@@ -44,7 +43,6 @@ public class UsuarioService {
                         "Base não encontrada com id: " + dto.baseId()
                 ));
 
-        // Regra 2: instancia a subclasse correta conforme tipo_usuario
         Usuario usuario = criarInstancia(dto.tipoUsuario());
         usuario.setNome(dto.nome());
         usuario.setEmail(dto.email());
@@ -79,7 +77,6 @@ public class UsuarioService {
     public UsuarioListagemDTO updateUsuario(Long id, UsuarioAtualizarDTO dto) {
         Usuario usuario = findOrThrow(id);
 
-        // Regra 17: valida email único apenas se foi alterado
         if (!usuario.getEmail().equals(dto.email())
                 && usuarioRepository.existsByEmail(dto.email())) {
             throw new DataIntegrityViolationException(
@@ -108,11 +105,6 @@ public class UsuarioService {
                 ));
     }
 
-    /**
-     * Regra 2: cria a subclasse correta para o SINGLE_TABLE discriminator.
-     * Operator → @DiscriminatorValue("OPERATOR")
-     * Viewer   → @DiscriminatorValue("VIEWER")
-     */
     private Usuario criarInstancia(TipoUsuario tipo) {
         return switch (tipo) {
             case OPERATOR -> new Operator();
@@ -120,14 +112,9 @@ public class UsuarioService {
         };
     }
 
-    /**
-     * Determina o TipoUsuario a partir da instância JPA
-     * (instanceof reflete o discriminator lido do banco).
-     */
     private TipoUsuario resolverTipo(Usuario u) {
         if (u instanceof Operator) return TipoUsuario.OPERATOR;
         if (u instanceof Viewer)   return TipoUsuario.VIEWER;
-        // fallback defensivo — nunca deve ocorrer com a hierarquia fechada
         throw new IllegalStateException("Tipo de usuário desconhecido: " + u.getClass().getSimpleName());
     }
 

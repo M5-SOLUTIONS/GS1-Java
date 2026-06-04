@@ -36,10 +36,6 @@ public class MovimentacaoService {
         this.recursoService = recursoService;
     }
 
-    /**
-     * Regra 2: apenas Operator pode registrar movimentações.
-     * O usuarioId do DTO é o executor da operação — se não for Operator, rejeita.
-     */
     @Transactional
     public MovimentacaoListagemDTO registrarMovimentacao(MovimentacaoCadastroDTO dto) {
 
@@ -53,14 +49,12 @@ public class MovimentacaoService {
                         "Usuário não encontrado com id: " + dto.usuarioId()
                 ));
 
-        // Regra 2: somente Operator registra movimentações
         if (!(usuario instanceof Operator)) {
             throw new OperadorNecessarioException(
                     "Apenas Operators podem registrar movimentações."
             );
         }
 
-        // Regra 11: setor derivado do recurso
         Setor setor = recurso.getSetor();
 
         if (dto.tipoMovimentacao() == TipoMovimentacao.CONSUMO) {
@@ -122,9 +116,6 @@ public class MovimentacaoService {
 
     // ── lógica de estoque ────────────────────────────────────
 
-    /**
-     * Regra 3: CONSUMO — reduz quantidade; nunca abaixo de zero (regra 3).
-     */
     private void realizarConsumo(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() - quantidade;
 
@@ -139,9 +130,6 @@ public class MovimentacaoService {
         atualizarStatusEAlertas(recurso);
     }
 
-    /**
-     * Regra 4/19: REABASTECIMENTO — aumenta quantidade respeitando capacidade máxima.
-     */
     private void realizarReabastecimento(Recurso recurso, Double quantidade) {
         double novaQuantidade = recurso.getQuantidade() + quantidade;
 

@@ -20,7 +20,6 @@ public class Recurso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Regra 9/15: recurso pertence a um setor
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "setor_id", nullable = false)
     private Setor setor;
@@ -37,11 +36,9 @@ public class Recurso {
     @Column(name = "minimo", nullable = false)
     private Double minimo;
 
-    // Regra 18: capacidade máxima obrigatória
     @Column(name = "capacidade_maxima", nullable = false)
     private Double capacidadeMaxima;
 
-    // Regra 7: apenas recursos críticos geram alertas
     @Column(name = "critico", nullable = false)
     private Boolean critico = false;
 

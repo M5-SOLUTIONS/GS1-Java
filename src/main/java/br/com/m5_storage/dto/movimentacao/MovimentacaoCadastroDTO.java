@@ -5,13 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-/**
- * Regras 11/12/13/15
- *
- * setorId foi REMOVIDO: o setor é derivado do recurso no service.
- * Exigir setorId do cliente era redundante (recurso já tem setor)
- * e criava risco de inconsistência caso o cliente mandasse o id errado.
- */
 public record MovimentacaoCadastroDTO(
 
         @NotNull(message = "Recurso é obrigatório")

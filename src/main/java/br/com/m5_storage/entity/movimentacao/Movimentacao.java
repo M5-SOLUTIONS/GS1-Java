@@ -22,12 +22,10 @@ public class Movimentacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Regra 11: usuário obrigatório
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    // Regra 10/15: recurso e setor obrigatórios
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "recurso_id", nullable = false)
     private Recurso recurso;

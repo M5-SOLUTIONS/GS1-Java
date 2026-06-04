@@ -9,6 +9,5 @@ import java.util.List;
 @Repository
 public interface SetorRepository extends JpaRepository<Setor, Long> {
 
-    // Regra 9: setores de uma base
     List<Setor> findByBaseId(Long baseId);
 }

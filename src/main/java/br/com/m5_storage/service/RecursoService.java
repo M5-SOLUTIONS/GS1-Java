@@ -50,7 +50,6 @@ public class RecursoService {
     public RecursoListagemDTO createRecurso(RecursoCadastroDTO dto, Long usuarioId) {
         exigirOperator(usuarioId);
 
-        // Correção 4: quantidade não pode ser maior que capacidadeMaxima
         if (dto.quantidade() > dto.capacidadeMaxima()) {
             throw new IllegalArgumentException(
                     "Quantidade (" + dto.quantidade() + ") não pode ser maior "
@@ -58,7 +57,6 @@ public class RecursoService {
             );
         }
 
-        // Correção 5: mínimo deve ser menor que capacidadeMaxima
         if (dto.minimo() >= dto.capacidadeMaxima()) {
             throw new IllegalArgumentException(
                     "Mínimo (" + dto.minimo() + ") deve ser menor "
@@ -90,7 +88,6 @@ public class RecursoService {
     public RecursoListagemDTO updateRecurso(Long id, RecursoAtualizarDTO dto, Long usuarioId) {
         exigirOperator(usuarioId);
 
-        // Correção 4: quantidade não pode ser maior que capacidadeMaxima
         if (dto.quantidade() > dto.capacidadeMaxima()) {
             throw new IllegalArgumentException(
                     "Quantidade (" + dto.quantidade() + ") não pode ser maior "
@@ -98,7 +95,6 @@ public class RecursoService {
             );
         }
 
-        // Correção 5: mínimo deve ser menor que capacidadeMaxima
         if (dto.minimo() >= dto.capacidadeMaxima()) {
             throw new IllegalArgumentException(
                     "Mínimo (" + dto.minimo() + ") deve ser menor "
@@ -174,9 +170,6 @@ public class RecursoService {
     }
 
     /**
-     * Regra 5 — Correção 3: usa tolerância de ponto flutuante
-     * em vez de Double.equals() para evitar bugs com operações decimais.
-     *
      * quantidade > minimo + tolerância → OK
      * |quantidade - minimo| <= tolerância → ATENCAO
      * quantidade < minimo - tolerância  → CRITICO
@@ -189,9 +182,6 @@ public class RecursoService {
         return StatusRecurso.CRITICO;
     }
 
-    /**
-     * Regras 6/8/9: sincroniza alertas após mudança de status.
-     */
     public void sincronizarAlertas(Recurso recurso) {
         if (!recurso.getCritico()) return;
 

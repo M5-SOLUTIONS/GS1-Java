@@ -27,10 +27,6 @@ public class AlertaAssembler
                 linkTo(methodOn(AlertaController.class)
                         .listarPorSetor(dto.setorId())).withRel("alertas-setor")
 
-                // PATCH /{id}/resolver foi removido daqui:
-                // recebe @RequestParam usuarioId — não faz sentido gerar o link
-                // sem saber o usuário que vai resolver, e links HATEOAS não carregam
-                // parâmetros dinâmicos de autenticação.
         );
     }
 }
