@@ -257,9 +257,6 @@ Permite:
 - atualizar dados
 - remover usuários
 
-> O primeiro usuário pode ser cadastrado livremente (bootstrap do sistema).
-> Após isso, apenas Operators podem criar novos Operators.
-
 ---
 
 # Banco de Dados
@@ -434,25 +431,7 @@ mvn spring-boot:run
 ```http
 http://localhost:8080/swagger-ui/index.html
 ```
-
----
-
-# Deploy
-
-A aplicação está configurada para deploy via Docker.
-
-## Build da imagem
-
-```bash
-docker build -t m5-storage .
-```
-
-## Executar o container
-
-```bash
-docker run -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:oracle:thin:@... \
-  -e SPRING_DATASOURCE_USERNAME=... \
-  -e SPRING_DATASOURCE_PASSWORD=... \
-  m5-storage
+## 5. Link Deploy
+```http
+https://m5-storage.onrender.com
 ```
