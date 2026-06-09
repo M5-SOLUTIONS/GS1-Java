@@ -446,5 +446,5 @@ https://www.youtube.com/watch?v=W-W-nl4zYuE
 
 ## 2. Vídeo pitch
 ```http
-
+https://www.youtube.com/watch?v=6SMKNB_aJPI
 ```
